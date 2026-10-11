@@ -452,10 +452,11 @@ namespace BlackBird.EditorTools
                 return ac;
             }
 
-            var idle = FindClip("Idle", "Stand--Idle");
-            var walk = FindClip("Walk_N", "Walk", "Locomotion--Walk_N");
-            var run = FindClip("Run_N", "Run", "Locomotion--Run_N");
-            var talk = FindClip("Talk");
+            // Mixamo names first (dropped into Art/Animations), then Starter Assets, then the cast's own clips
+            var idle = FindClip("Breathing Idle", "Standing Idle", "Idle", "Stand--Idle");
+            var walk = FindClip("Walking", "Standard Walk", "Walk_N", "Walk", "Locomotion--Walk_N");
+            var run = FindClip("Running", "Standard Run", "Run_N", "Run", "Locomotion--Run_N");
+            var talk = FindClip("Talking", "Talk");
             if (walk && walk.averageSpeed.magnitude > 0.3f) walkSpeed = new Vector2(walk.averageSpeed.x, walk.averageSpeed.z).magnitude;
             if (run && run.averageSpeed.magnitude > walkSpeed) runSpeed = new Vector2(run.averageSpeed.x, run.averageSpeed.z).magnitude;
             Debug.Log($"[Black Bird] {name}: idle={Src(idle)} walk={Src(walk)} ({walkSpeed:0.00} m/s) run={Src(run)} talk={Src(talk)}");

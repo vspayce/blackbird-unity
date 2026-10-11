@@ -67,7 +67,7 @@ namespace BlackBird.Setup
     // Humanoid, so animation from any humanoid source retargets onto the cast.
     class ModelImport : AssetPostprocessor
     {
-        static readonly string[] Looping = { "idle", "walk", "run", "talk", "stroll", "locomotion" };
+        static readonly string[] Looping = { "idle", "walk", "run", "talk", "stroll", "locomotion", "breathing" };
 
         void OnPreprocessModel()
         {
@@ -141,8 +141,11 @@ namespace BlackBird.Setup
             if (!p.StartsWith("Assets/BlackBird/Art/")) return;
             var mi = (ModelImporter)assetImporter;
             var clips = mi.clipAnimations.Length > 0 ? mi.clipAnimations : mi.defaultClipAnimations;
+            var file = System.IO.Path.GetFileNameWithoutExtension(p);
             foreach (var c in clips)
             {
+                // Mixamo calls every take "mixamo.com": name it after the file ("Walking.fbx" -> Walking)
+                if (c.name == "mixamo.com" || c.name.StartsWith("Take 0")) c.name = file;
                 var n = c.name.ToLowerInvariant();
                 bool loop = Looping.Any(n.Contains);
                 c.loopTime = loop;
