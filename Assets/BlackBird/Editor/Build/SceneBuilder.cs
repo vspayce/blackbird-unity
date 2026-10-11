@@ -47,7 +47,11 @@ namespace BlackBird.EditorTools
             foreach (var t in set.GetComponentsInChildren<Transform>()) t.gameObject.isStatic = true;
             var axes = new GameObject("WorldAxes").AddComponent<WorldAxes>();
             MeasureAxes(set, axes);
-            Web.SX = axes.sx; Web.SZ = axes.sz;
+            if (axes.sx != Web.SX || axes.sz != Web.SZ)
+            {
+                Debug.LogError($"[Black Bird] The set came in with axes sx={axes.sx} sz={axes.sz}, but Web.SX/SZ are {Web.SX}/{Web.SZ}. Update them in Chapter1.cs, then rebuild.");
+                return;
+            }
             TuneSetMaterials(set);
             TuneCastMaterials();
             AlleyDressing.Build(null, AssetDatabase.LoadAssetAtPath<Font>(Root + "/Fonts/IMFellEnglishSC-Regular.ttf"));

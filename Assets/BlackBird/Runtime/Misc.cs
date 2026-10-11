@@ -20,12 +20,9 @@ namespace BlackBird
         }
     }
 
-    // Which way the imported set faces relative to the web prototype's coordinates. The builder
-    // measures it from the set and stores it here; it must be applied before anything reads Chapter1.
-    [DefaultExecutionOrder(-1000)]
+    // What the builder measured from the set (for reference; the mapping itself is Web.SX / Web.SZ).
     public class WorldAxes : MonoBehaviour
     {
-        public float sx = -1f, sz = 1f;
-        void Awake() { Web.SX = sx; Web.SZ = sz; }
+        public float sx = Web.SX, sz = Web.SZ;
     }
 }

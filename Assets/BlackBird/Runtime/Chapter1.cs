@@ -7,10 +7,12 @@ namespace BlackBird
 {
     public static class Web
     {
-        // The FBX path mirrors X relative to three.js (Unity is left-handed). If the set ever comes in
-        // the other way round, flip this, not the data.
-        public static float SX = -1f;
-        public static float SZ = 1f;
+        // How the exported set sits relative to the web game's coordinates: Blender's FBX export turns
+        // the scene half round, so the web's +Z (toward Bush Street) is Unity's -Z. These are constants
+        // because Chapter1's data is computed once, whenever .NET first touches the class; the scene
+        // builder measures the set and stops with an error if an export ever comes in differently.
+        public const float SX = 1f;
+        public const float SZ = -1f;
         public static Vector3 W(float x, float y, float z) => new Vector3(SX * x, y, SZ * z);
         public static Vector3 W(float x, float z) => W(x, 0, z);
         public static Bounds Box(float x0, float y0, float z0, float x1, float y1, float z1)
