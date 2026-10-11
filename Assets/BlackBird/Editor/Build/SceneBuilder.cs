@@ -49,6 +49,7 @@ namespace BlackBird.EditorTools
             MeasureAxes(set, axes);
             Web.SX = axes.sx; Web.SZ = axes.sz;
             TuneSetMaterials(set);
+            TuneCastMaterials();
 
             // ---- environment ----
             RenderSettings.fog = true;
@@ -202,7 +203,10 @@ namespace BlackBird.EditorTools
                 foreach (var m in r.sharedMaterials)
                 {
                     if (!m) continue;
-                    var n = m.name.ToLowerInvariant();
+                    var n = m.name.ToLowerInvariant().Replace("burritt-", "");
+                    if (m.HasProperty("_BaseMap") && m.GetTexture("_BaseMap") && !n.StartsWith("glass_lit"))
+                        m.SetColor("_BaseColor", Color.white);   // the texture carries the colour
+                    if (n.StartsWith("brick") || n.StartsWith("clap") || n.Contains("wood")) m.SetFloat("_Smoothness", 0.18f);
                     if (n.StartsWith("stone"))
                     { if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.62f); }
                     else if (n.StartsWith("glass_dark"))
@@ -221,6 +225,37 @@ namespace BlackBird.EditorTools
                     }
                     EditorUtility.SetDirty(m);
                 }
+        }
+
+        static void TuneCastMaterials()
+        {
+            foreach (var g in AssetDatabase.FindAssets("t:Material", new[] { Root + "/Art/Characters" }))
+            {
+                var m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
+                if (!m || !m.HasProperty("_Smoothness")) continue;
+                var n = m.name.ToLowerInvariant();
+                m.SetFloat("_Metallic", 0);
+                if (n.Contains("hair") || n.Contains("eyebrow") || n.Contains("eyelash") || n.Contains("moustache") || n.Contains("beard") || n.Contains("lace"))
+                {
+                    // cards with alpha: cut out, both sides
+                    m.SetFloat("_AlphaClip", 1); m.EnableKeyword("_ALPHATEST_ON");
+                    m.SetFloat("_Cutoff", n.Contains("eyelash") ? 0.3f : 0.45f);
+                    m.SetFloat("_Cull", 0);
+                    m.SetOverrideTag("RenderType", "TransparentCutout");
+                    m.renderQueue = (int)RenderQueue.AlphaTest;
+                    m.SetFloat("_Smoothness", 0.3f);
+                }
+                else if (n.Contains("silk")) m.SetFloat("_Smoothness", 0.55f);
+                else if (n.Contains("silver") || n.Contains("gold") || n.Contains("brass") || n.Contains("button") || n.Contains("chain"))
+                { m.SetFloat("_Metallic", 0.9f); m.SetFloat("_Smoothness", 0.6f); }
+                else if (n.Contains("body") || n.Contains("skin")) m.SetFloat("_Smoothness", 0.32f);
+                else if (n.Contains("eye") || n.Contains("low-poly")) m.SetFloat("_Smoothness", 0.8f);
+                else if (n.Contains("shoe") || n.Contains("boot") || n.Contains("leather")) m.SetFloat("_Smoothness", 0.45f);
+                else m.SetFloat("_Smoothness", 0.12f);   // wool, tweed, suits
+                // Blender's FBX export leaves base colour grey when a texture drives it
+                if (m.GetTexture("_BaseMap") && m.GetColor("_BaseColor").maxColorComponent < 0.95f) m.SetColor("_BaseColor", Color.white);
+                EditorUtility.SetDirty(m);
+            }
         }
 
         // ---- people ----------------------------------------------------------------------------------
