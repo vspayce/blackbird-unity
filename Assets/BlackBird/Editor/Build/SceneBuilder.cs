@@ -50,6 +50,7 @@ namespace BlackBird.EditorTools
             Web.SX = axes.sx; Web.SZ = axes.sz;
             TuneSetMaterials(set);
             TuneCastMaterials();
+            AlleyDressing.Build(null, AssetDatabase.LoadAssetAtPath<Font>(Root + "/Fonts/IMFellEnglishSC-Regular.ttf"));
 
             // ---- environment ----
             RenderSettings.fog = true;
@@ -57,16 +58,16 @@ namespace BlackBird.EditorTools
             RenderSettings.fogDensity = 0.052f;
             RenderSettings.fogColor = Hex("#18202a");
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = Hex("#5a7290") * 0.55f;
-            RenderSettings.ambientEquatorColor = Hex("#2c3440") * 0.5f;
-            RenderSettings.ambientGroundColor = Hex("#1a140e") * 0.6f;
+            RenderSettings.ambientSkyColor = new Color(0.22f, 0.28f, 0.38f);
+            RenderSettings.ambientEquatorColor = new Color(0.12f, 0.14f, 0.18f);
+            RenderSettings.ambientGroundColor = new Color(0.09f, 0.075f, 0.06f);
             RenderSettings.skybox = null;
             RenderSettings.defaultReflectionMode = DefaultReflectionMode.Custom;
             RenderSettings.reflectionIntensity = 0.6f;
 
             var moon = new GameObject("Moon").AddComponent<Light>();
             moon.type = LightType.Directional;
-            moon.color = Hex("#8fa6c8"); moon.intensity = 0.32f;
+            moon.color = Hex("#8fa6c8"); moon.intensity = 0.55f;
             moon.transform.rotation = Quaternion.LookRotation(-Web.W(-6, 14, 8).normalized);
             moon.shadows = LightShadows.Soft; moon.shadowStrength = 0.55f;
             RenderSettings.sun = moon;
@@ -90,11 +91,11 @@ namespace BlackBird.EditorTools
                 var l = new GameObject("GasLight").AddComponent<Light>();
                 l.transform.SetParent(t, false);
                 l.type = LightType.Point; l.color = Hex("#ffb468");
-                l.intensity = bracket ? 2.6f : 3.6f; l.range = bracket ? 10f : 13f;
+                l.intensity = bracket ? 14f : 24f; l.range = bracket ? 12f : 16f;
                 l.shadows = LightShadows.None;
                 lamps.Add(l);
             }
-            var lantern = PointLight("PoliceLantern", Web.W(-0.9f, 0.5f, -17.8f), Hex("#ffc27a"), 1.6f, 6f);
+            var lantern = PointLight("PoliceLantern", Web.W(-0.9f, 0.5f, -17.8f), Hex("#ffc27a"), 4f, 7f);
             lamps.Add(lantern);
             var lanternGlass = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             Object.DestroyImmediate(lanternGlass.GetComponent<Collider>());
@@ -509,6 +510,16 @@ namespace BlackBird.EditorTools
             Set("m_HDRColorBufferPrecision", 0);
             so.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(asset);
+            // the fog is transparent and fades against the depth texture: copy depth after opaques,
+            // not after transparents, or the fog cuts hard lines where it meets walls and cobbles
+            var rdObj = so.FindProperty("m_RendererDataList").GetArrayElementAtIndex(0).objectReferenceValue;
+            if (rdObj)
+            {
+                var rso = new SerializedObject(rdObj);
+                var copy = rso.FindProperty("m_CopyDepthMode"); if (copy != null) copy.intValue = 0;
+                rso.ApplyModifiedPropertiesWithoutUndo();
+                EditorUtility.SetDirty(rdObj);
+            }
 
             GraphicsSettings.defaultRenderPipeline = asset;
             int level = QualitySettings.GetQualityLevel();
@@ -560,6 +571,8 @@ namespace BlackBird.EditorTools
         {
             m.SetFloat("_Surface", 1);
             m.SetFloat("_Blend", additive ? 2 : 0);
+            m.SetFloat("_BlendModePreserveSpecular", 0);
+            m.DisableKeyword("_ALPHAPREMULTIPLY_ON");
             m.SetFloat("_SrcBlend", (float)BlendMode.SrcAlpha);
             m.SetFloat("_DstBlend", additive ? (float)BlendMode.One : (float)BlendMode.OneMinusSrcAlpha);
             m.SetFloat("_SrcBlendAlpha", additive ? (float)BlendMode.Zero : (float)BlendMode.One);
