@@ -28,7 +28,7 @@ def emission_to_base():
     """Unity's FBX import reads base colour textures reliably but not emission ones: copy each emissive
     material's emission image (or colour) into Base Color. The builder turns it back into emission."""
     for m in bpy.data.materials:
-        if not m.use_nodes or not m.node_tree:
+        if not m.node_tree:
             continue
         p = next((n for n in m.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None)
         if not p:
@@ -46,6 +46,38 @@ def emission_to_base():
             base.default_value = emit.default_value
 
 
+def write_textures(folder, prefix):
+    """Write every image the materials use into folder as <prefix>_<name>.png (copying files that exist,
+    saving packed or generated ones), and point the images at them. The FBX then names those files and
+    Unity finds them next to the model; embedded textures don't survive Unity's import."""
+    import shutil
+    os.makedirs(folder, exist_ok=True)
+    used = set()
+    for m in bpy.data.materials:
+        if m.node_tree:
+            for n in m.node_tree.nodes:
+                if n.type == 'TEX_IMAGE' and n.image:
+                    used.add(n.image)
+    for img in used:
+        base = ''.join(c if c.isalnum() or c in '-_' else '_' for c in os.path.splitext(img.name)[0])
+        src = bpy.path.abspath(img.filepath) if img.filepath else ''
+        ext = os.path.splitext(src)[1].lower() if src else ''
+        if src and os.path.exists(src) and not img.packed_file and ext in ('.png', '.jpg', '.jpeg'):
+            dest = os.path.join(folder, f'{prefix}_{base}{ext}')
+            shutil.copyfile(src, dest)
+        else:
+            dest = os.path.join(folder, f'{prefix}_{base}.png')
+            img.filepath_raw = dest
+            img.file_format = 'PNG'
+            try:
+                img.save()
+            except Exception as e:  # an image with no pixels
+                print('could not save', img.name, e)
+                continue
+        img.filepath = dest
+    return len(used)
+
+
 def select_only(objs):
     bpy.ops.object.select_all(action='DESELECT')
     for o in objs:
@@ -57,13 +89,14 @@ def select_only(objs):
 
 
 COMMON = dict(apply_scale_options='FBX_SCALE_ALL', axis_forward='-Z', axis_up='Y', bake_space_transform=True,
-              use_mesh_modifiers=True, mesh_smooth_type='FACE', add_leaf_bones=False, path_mode='COPY',
-              embed_textures=True, use_custom_props=False)
+              use_mesh_modifiers=True, mesh_smooth_type='FACE', add_leaf_bones=False, path_mode='STRIP',
+              embed_textures=False, use_custom_props=False)
 
 
 def export_set(src, dst):
     bpy.ops.wm.open_mainfile(filepath=os.path.join(src, 'art', 'set', 'burritt.blend'))
     emission_to_base()
+    write_textures(os.path.join(dst, 'Assets', 'BlackBird', 'Art', 'Set', 'Textures'), 'burritt')
     objs = [o for o in bpy.context.scene.objects if o.type in ('MESH', 'EMPTY', 'CURVE')]
     select_only(objs)
     out = os.path.join(dst, 'Assets', 'BlackBird', 'Art', 'Set', 'burritt.fbx')
@@ -85,6 +118,7 @@ def export_character(src, dst, name):
         return
     meshes = [o for o in bpy.context.scene.objects if o.type == 'MESH' and (o.parent == rig or any(
         md.type == 'ARMATURE' and md.object == rig for md in o.modifiers))]
+    write_textures(os.path.join(dst, 'Assets', 'BlackBird', 'Art', 'Characters', 'Textures'), name)
     # export the bind pose as the rest pose, with every action as its own take
     if rig.animation_data:
         rig.animation_data.action = None

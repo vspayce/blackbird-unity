@@ -88,8 +88,7 @@ namespace BlackBird.Setup
                 mi.addCollider = false;
                 mi.isReadable = false;
                 mi.meshCompression = ModelImporterMeshCompression.Medium;
-                mi.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
-                mi.materialLocation = ModelImporterMaterialLocation.InPrefab;
+                External(mi);
             }
             else if (p.Contains("/Characters/") || p.Contains("/Animations/"))
             {
@@ -98,11 +97,23 @@ namespace BlackBird.Setup
                 mi.importAnimation = true;
                 mi.optimizeGameObjects = false;
                 mi.meshCompression = ModelImporterMeshCompression.Low;
-                mi.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
-                mi.materialLocation = ModelImporterMaterialLocation.InPrefab;
+                External(mi);
                 mi.resampleCurves = true;
                 mi.animationCompression = ModelImporterAnimationCompression.Optimal;
             }
+        }
+
+        // Materials as editable .mat files in a Materials folder beside the model (so the scene builder
+        // can tune them), named model_material so the cast's shared MakeHuman names don't collide, and
+        // textures found by file name in the Textures folder beside the model.
+        static void External(ModelImporter mi)
+        {
+            mi.materialImportMode = ModelImporterMaterialImportMode.ImportStandard;
+#pragma warning disable 618
+            mi.materialLocation = ModelImporterMaterialLocation.External;
+#pragma warning restore 618
+            mi.materialName = ModelImporterMaterialName.BasedOnModelNameAndMaterialName;
+            mi.materialSearch = ModelImporterMaterialSearch.Local;
         }
 
         // Loop the cyclic clips and keep them in place: the game moves the characters itself and
