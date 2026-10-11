@@ -103,6 +103,23 @@ namespace BlackBird.Setup
             }
         }
 
+        // Textures exported beside the models: normal maps flagged, sizes kept phone/WebGL friendly.
+        void OnPreprocessTexture()
+        {
+            var p = assetPath.Replace('\\', '/');
+            if (!p.StartsWith("Assets/BlackBird/Art/")) return;
+            var ti = (TextureImporter)assetImporter;
+            var n = System.IO.Path.GetFileNameWithoutExtension(p).ToLowerInvariant();
+            if (n.EndsWith("_n") || n.Contains("normal") || n.EndsWith("_nrm"))
+            {
+                ti.textureType = TextureImporterType.NormalMap;
+                ti.sRGBTexture = false;
+            }
+            ti.maxTextureSize = p.Contains("/Set/") ? 1024 : 2048;
+            ti.mipmapEnabled = true;
+            ti.anisoLevel = p.Contains("/Set/") ? 4 : 1;
+        }
+
         // Materials as editable .mat files in a Materials folder beside the model (so the scene builder
         // can tune them), named model_material so the cast's shared MakeHuman names don't collide, and
         // textures found by file name in the Textures folder beside the model.
