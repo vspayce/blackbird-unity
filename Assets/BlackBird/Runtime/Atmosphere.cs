@@ -9,7 +9,7 @@ namespace BlackBird
     {
         public Material fogMaterial;        // URP Particles/Lit, soft, camera-faded, alpha blended
         public Material coneMaterial;       // URP Particles/Unlit, additive, vertex colour
-        public Color fogTint = new Color(0.62f, 0.68f, 0.76f, 0.16f);
+        public Color fogTint = new Color(0.62f, 0.68f, 0.76f, 0.24f);
         public Color coneTint = new Color(1f, 0.72f, 0.42f, 0.11f);
         [Range(0, 1)] public float focusThin = 0.55f;   // how much Focus pulls the fog back
 
@@ -22,7 +22,7 @@ namespace BlackBird
             // the alley, from Bush Street to the fence, and Bush Street itself (web coordinates)
             Bank("Fog_Alley", Web.W(0, 1.4f, -7), new Vector3(5f, 2.4f, 30f), 16, 4.5f, 8f, 0.25f);
             Bank("Fog_Street", Web.W(0, 1.8f, 15), new Vector3(60f, 3f, 14f), 34, 6f, 11f, 0.45f);
-            Bank("Fog_Low", Web.W(0, 0.35f, 0), new Vector3(46f, 0.5f, 40f), 24, 3f, 6f, 0.15f, 0.7f);
+            Bank("Fog_Low", Web.W(0, 0.35f, 0), new Vector3(46f, 0.5f, 40f), 24, 3f, 6f, 0.15f, 1.33f);
 
             foreach (var l in lamps)
             {

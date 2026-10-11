@@ -170,7 +170,7 @@ namespace BlackBird.EditorTools
             var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             m.SetTexture("_BaseMap", albedo);
             m.SetColor("_BaseColor", Color.white);
-            m.SetTexture("_BumpMap", normal); m.EnableKeyword("_NORMALMAP"); m.SetFloat("_BumpScale", 1.2f);
+            m.SetTexture("_BumpMap", normal); m.EnableKeyword("_NORMALMAP"); m.SetFloat("_BumpScale", 0.55f);
             // smoothness from the albedo's alpha: dull stone, water standing in the joints
             m.SetFloat("_SmoothnessTextureChannel", 1); m.EnableKeyword("_SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A");
             m.SetFloat("_Smoothness", 1f);

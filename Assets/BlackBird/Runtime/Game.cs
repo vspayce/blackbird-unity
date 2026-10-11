@@ -16,6 +16,8 @@ namespace BlackBird
         public string[] hiddenSpotIds;
 
         public float walkSpeed = 1.55f, strollSpeed = 0.75f;
+        [Tooltip("Test only: pushes the move stick (x, y) when nothing else does.")]
+        public Vector2 autopilot;
 
         enum Mode { Explore, Closeup, Talk, Done }
         Mode mode;
@@ -70,7 +72,7 @@ namespace BlackBird
 
             // exploring
             cameraRig.AddLook(input.Look);
-            var m = input.Move;
+            var m = input.Move.sqrMagnitude > 0.01f ? input.Move : autopilot;
             var fwd = Quaternion.Euler(0, cameraRig.yaw, 0);
             var dir = fwd * new Vector3(m.x, 0, m.y);
             float push = m.magnitude;

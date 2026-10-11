@@ -59,8 +59,8 @@ namespace BlackBird.EditorTools
             // ---- environment ----
             RenderSettings.fog = true;
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = 0.052f;
-            RenderSettings.fogColor = Hex("#18202a");
+            RenderSettings.fogDensity = 0.06f;
+            RenderSettings.fogColor = new Color(0.17f, 0.21f, 0.26f);   // a lit fog, not a black night
             RenderSettings.ambientMode = AmbientMode.Trilight;
             RenderSettings.ambientSkyColor = new Color(0.22f, 0.28f, 0.38f);
             RenderSettings.ambientEquatorColor = new Color(0.12f, 0.14f, 0.18f);
@@ -116,7 +116,7 @@ namespace BlackBird.EditorTools
             {
                 p.Add<Tonemapping>(true).mode.Override(TonemappingMode.ACES);
                 var bloom = p.Add<Bloom>(true); bloom.threshold.Override(1.0f); bloom.intensity.Override(0.9f); bloom.scatter.Override(0.68f); bloom.highQualityFiltering.Override(false);
-                var ca = p.Add<ColorAdjustments>(true); ca.postExposure.Override(0.35f); ca.contrast.Override(14f); ca.saturation.Override(-14f); ca.colorFilter.Override(new Color(0.93f, 0.97f, 1.04f));
+                var ca = p.Add<ColorAdjustments>(true); ca.postExposure.Override(0.75f); ca.contrast.Override(14f); ca.saturation.Override(-14f); ca.colorFilter.Override(new Color(0.93f, 0.97f, 1.04f));
                 p.Add<WhiteBalance>(true).temperature.Override(-14f);
                 var v = p.Add<Vignette>(true); v.intensity.Override(0.33f); v.smoothness.Override(0.45f);
                 var g = p.Add<FilmGrain>(true); g.type.Override(FilmGrainLookup.Medium1); g.intensity.Override(0.22f); g.response.Override(0.75f);
@@ -134,7 +134,7 @@ namespace BlackBird.EditorTools
             // ---- camera ----
             var camGo = new GameObject("Main Camera") { tag = "MainCamera" };
             var cam = camGo.AddComponent<Camera>();
-            cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = Hex("#0d1218");
+            cam.clearFlags = CameraClearFlags.SolidColor; cam.backgroundColor = RenderSettings.fogColor * 0.8f;
             cam.fieldOfView = 55; cam.nearClipPlane = 0.08f; cam.farClipPlane = 140f;
             camGo.AddComponent<AudioListener>();
             var camData = camGo.AddComponent<UniversalAdditionalCameraData>();
@@ -615,6 +615,8 @@ namespace BlackBird.EditorTools
             m.SetFloat("_CameraNearFadeDistance", 1.0f); m.SetFloat("_CameraFarFadeDistance", 5f);
             m.SetVector("_CameraFadeParams", new Vector4(1.0f, 1f / 4f, 0, 0));
             m.SetFloat("_ColorMode", 0);
+            // a little light of its own, so the fog reads between the lamps and glows amber near them
+            m.EnableKeyword("_EMISSION"); m.SetColor("_EmissionColor", new Color(0.10f, 0.12f, 0.15f));
             return Save(m, "Fog");
         }
 
