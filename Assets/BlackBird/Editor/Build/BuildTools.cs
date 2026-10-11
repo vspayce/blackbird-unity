@@ -36,6 +36,9 @@ namespace BlackBird.EditorTools
             PlayerSettings.WebGL.dataCaching = true;
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
             PlayerSettings.WebGL.nameFilesAsHashes = false;
+            PlayerSettings.WebGL.template = "PROJECT:BlackBird";   // full-window, landscape, our loading screen
+            // optimised code rather than the quick-to-build default
+            EditorUserBuildSettings.SetPlatformSettings("WebGL", "CodeOptimization", "RuntimeSpeed");
             Debug.Log("[Black Bird] Player settings configured.");
         }
 
