@@ -175,7 +175,7 @@ namespace BlackBird.EditorTools
                 var bloom = p.Add<Bloom>(true); bloom.threshold.Override(day ? 1.2f : 0.95f); bloom.intensity.Override(day ? 0.35f : 0.9f); bloom.scatter.Override(0.7f);
                 var ca = p.Add<ColorAdjustments>(true);
                 if (day) { ca.postExposure.Override(0.1f); ca.contrast.Override(12f); ca.saturation.Override(-8f); }
-                else { ca.postExposure.Override(0.55f); ca.contrast.Override(14f); ca.saturation.Override(-10f); ca.colorFilter.Override(new Color(0.95f, 0.97f, 1.03f)); }
+                else { ca.postExposure.Override(0.85f); ca.contrast.Override(14f); ca.saturation.Override(-10f); ca.colorFilter.Override(new Color(0.95f, 0.97f, 1.03f)); }
                 var v = p.Add<Vignette>(true); v.intensity.Override(day ? 0.22f : 0.3f); v.smoothness.Override(0.45f);
                 var g = p.Add<FilmGrain>(true); g.type.Override(FilmGrainLookup.Thin1); g.intensity.Override(day ? 0.12f : 0.2f);
             });
