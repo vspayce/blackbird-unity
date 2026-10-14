@@ -258,9 +258,21 @@ namespace BlackBird.EditorTools
                     // thin clear glass: you see the palms and the city through it, and the sky and lamps in it
                     SceneBuilder.Transparent(m, false);
                     m.SetColor("_BaseColor", n == "glass_cons" ? new Color(0.62f, 0.7f, 0.72f, 0.18f) : new Color(0.55f, 0.62f, 0.68f, 0.14f));
-                    m.SetFloat("_Smoothness", 0.96f); m.SetFloat("_Metallic", 0);
+                    m.SetFloat("_Smoothness", 0.86f); m.SetFloat("_Metallic", 0);
                     m.SetFloat("_Cull", 0);
                     m.SetTexture("_BaseMap", null);
+                }
+                else if (n == "frond" || n == "fernleaf")
+                {
+                    // leaflets cut out of the frond texture, seen from both sides
+                    m.SetFloat("_AlphaClip", 1); m.EnableKeyword("_ALPHATEST_ON"); m.SetFloat("_Cutoff", 0.45f);
+                    m.SetFloat("_Cull", 0); m.SetOverrideTag("RenderType", "TransparentCutout");
+                    m.renderQueue = (int)RenderQueue.AlphaTest;
+                    m.SetColor("_BaseColor", Color.white); m.SetFloat("_Smoothness", 0.35f);
+                }
+                else if (n == "water")
+                {
+                    m.SetColor("_BaseColor", new Color(0.16f, 0.22f, 0.24f)); m.SetFloat("_Smoothness", 0.97f); m.SetFloat("_Metallic", 0.1f);
                 }
                 else if (n == "stained" || n == "candle")
                 {
@@ -409,6 +421,11 @@ namespace BlackBird.EditorTools
             }
             var h = L(data["hall"]).Select(F).ToArray();
             Probe("Hall", Web.Box(h[0], 0.1f, h[2], h[1], 14f, h[3]));
+            if (data.TryGetValue("grand", out var g) && g is bool gb && gb)
+            {
+                Probe("PalmHouse", Web.Box(-9, 0.1f, -27.5f, 9, 14f, -14));
+                Probe("PalmHouseTransept", Web.Box(-13.5f, 0.1f, -24, 13.5f, 9f, -17));
+            }
             var outside = new GameObject("Outside").AddComponent<ReflectionProbe>();
             outside.transform.SetParent(parent, false); outside.transform.position = Web.W(0, 4, 30);
             outside.size = new Vector3(200, 60, 200); outside.mode = ReflectionProbeMode.Baked; outside.resolution = 128; outside.importance = 0;

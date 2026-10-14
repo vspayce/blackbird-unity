@@ -94,6 +94,9 @@ def materials():
     material('bronze_dark', '#3a2a18', rough=0.35, metal=0.85)
     material('cove_gold', '#8a6a34', rough=0.5, metal=0.6)
     material('cove_ground', '#3a2a1a', rough=0.85)
+    material('frond', '#ffffff', rough=0.7, tex=frond_tex('frond'), scale=None)
+    material('fernleaf', '#ffffff', rough=0.75, tex=frond_tex('fernleaf', leaflets=26, base='#2e4a22'), scale=None)
+    material('palm_trunk', '#4a3a28', rough=0.9)
 
 
 # ---- patches ---------------------------------------------------------------------------------------------
@@ -103,6 +106,8 @@ def patch():
     HH.conservatory = raised_conservatory
     K.build_solarium_glass = palm_house
     K.gasolier = room_gasolier
+    K.palm = grand_palm
+    K.fern = grand_fern
     orig_ceiling = K.coffered_ceiling
     K.coffered_ceiling = lambda *a, **kw: stencilled_ceiling(orig_ceiling, *a, **kw)
     orig_fireplace = K.fireplace
@@ -1001,3 +1006,76 @@ def grand_fireplace(orig, F, u, mat='marble_white', w=2.0, h=1.4, mirror=True):
     lbox(F, 'carved_walnut', u - w / 2 - 0.25, u + w / 2 + 0.25, top, top + 0.22, d - 0.15, d + 0.12)
     lbox(F, 'gilt_frame', u - w / 2 - 0.3, u + w / 2 + 0.3, top + 0.22, top + 0.27, d - 0.15, d + 0.15)
     lbox(F, 'carved_walnut', u - 0.35, u + 0.35, top + 0.27, top + 0.6, d - 0.12, d + 0.02)    # a carved crest
+
+
+# ---- plants ------------------------------------------------------------------------------------------------
+
+def frond_tex(name, leaflets=34, base='#2a4a1e', size=256):
+    """A pinnate frond seen flat: a midrib down the middle (v) and narrow leaflets angled out to either side,
+    with alpha so everything between them is clear."""
+    H = W = size
+    yy, xx = np.mgrid[0:H, 0:W] / size        # yy along the frond (0 base .. 1 tip), xx across (0..1)
+    u = xx - 0.5
+    rib = np.abs(u) < 0.012
+    # leaflets: lines leaving the rib at ~35 degrees toward the tip
+    phase = (yy * leaflets - np.abs(u) * leaflets * 0.75) % 1
+    leaf = (phase < 0.42) & (np.abs(u) < 0.5 * np.sin(np.clip(yy, 0, 1) * math.pi * 0.95 + 0.05) ** 0.7)
+    a = (rib | leaf).astype(float)
+    shade = 0.75 + 0.35 * (1 - phase) + 0.15 * noise(H, W, 10, 51)
+    col = hexrgb(base) * np.clip(shade, 0, 1.3)[..., None]
+    col[rib] = hexrgb('#5a5a2a')
+    return image(name, col, alpha=a)
+
+
+def frond(base, direction, length, width, droop=0.9, mat='frond', seg=8):
+    """One arching frond from base along a horizontal direction: rises, then droops; both faces."""
+    d = Vector(direction).normalized()
+    side = Vector((-d.z, 0, d.x))
+    pts = []
+    for i in range(seg + 1):
+        t = i / seg
+        p = Vector(base) + d * (length * t) + Vector((0, length * (0.45 * math.sin(t * math.pi * 0.6) - droop * 0.55 * t * t), 0))
+        pts.append(p)
+    for i in range(seg):
+        t0, t1 = i / seg, (i + 1) / seg
+        w0, w1 = width * (0.35 + 0.65 * math.sin(t0 * math.pi * 0.92 + 0.08)), width * (0.35 + 0.65 * math.sin(t1 * math.pi * 0.92 + 0.08))
+        a0, a1 = pts[i], pts[i + 1]
+        corners = [a0 - side * w0 / 2, a0 + side * w0 / 2, a1 + side * w1 / 2, a1 - side * w1 / 2]
+        uv = ((0, t0), (1, t0), (1, t1), (0, t1))
+        canvas(mat, corners, uv=uv)
+        canvas(mat, list(reversed(corners)), uv=tuple(reversed(uv)))
+
+
+def grand_palm(x, z, h=2.6, y=0.0):
+    """A Kentia palm in a glazed tub: a ringed trunk leaning a little, and a crown of arching fronds."""
+    cyl('trim_stone', (x, y, z), 0.55, 0.36, 0.3, seg=14)
+    cyl('flowers', (x, y + 0.5, z), 0.06, 0.32, seg=14)
+    lean = Vector(((rnd(x, z) - 0.5) * 0.25, 1, (rnd(z, x) - 0.5) * 0.25)).normalized()
+    top = Vector((x, y + 0.55, z)) + lean * (h - 0.55)
+    nring = max(4, int((h - 0.55) / 0.25))
+    for k in range(nring):
+        a = Vector((x, y + 0.55, z)) + lean * ((h - 0.55) * k / nring)
+        cyl('palm_trunk', a, (h - 0.55) / nring, 0.09 - 0.02 * k / nring, 0.075 - 0.02 * k / nring, seg=8, axis=lean)
+    n = 11
+    for k in range(n):
+        ang = k * 2 * math.pi / n + rnd(x + k, z) * 0.4
+        frond(top, (math.cos(ang), 0, math.sin(ang)), 1.5 + 0.5 * rnd(k, x), 0.7, droop=0.8 + 0.4 * rnd(z, k))
+    for k in range(4):  # young fronds standing up in the middle
+        ang = k * math.pi / 2 + 0.4
+        frond(top, (math.cos(ang) * 0.3, 0, math.sin(ang) * 0.3), 0.9, 0.4, droop=0.0)
+    K.collide(x - 0.36, y, z - 0.36, x + 0.36, h, z + 0.36)
+
+
+def grand_fern(x, z, s=1.0, y=0.0):
+    """A Boston fern in a brass pot: a fountain of arching fronds."""
+    cyl('brass', (x, y, z), 0.45 * s, 0.2 * s, 0.28 * s, seg=12)
+    top = Vector((x, y + 0.45 * s, z))
+    for k in range(16):
+        ang = k * 2 * math.pi / 16
+        frond(top, (math.cos(ang), 0, math.sin(ang)), 0.75 * s, 0.22 * s, droop=1.0, mat='fernleaf', seg=6)
+    K.collide(x - 0.3 * s, y, z - 0.3 * s, x + 0.3 * s, 0.5 * s, z + 0.3 * s)
+
+
+def rnd(a, b):
+    v = math.sin(a * 12.9898 + b * 78.233) * 43758.5453
+    return v - math.floor(v)
