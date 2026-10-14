@@ -42,7 +42,7 @@ namespace BlackBird
             desired.y = 0;
             velocity = Vector3.MoveTowards(velocity, desired, acceleration * dt);
             var step = velocity * dt;
-            if (cc && cc.enabled) cc.Move(step + Vector3.down * 2f * dt);
+            if (cc && cc.enabled) { cc.Move(step + Vector3.down * 2f * dt); SafetyNet(); }
             else transform.position += step;
             if (cc && cc.enabled && dt > 0)
             {
@@ -60,6 +60,25 @@ namespace BlackBird
                 transform.rotation = Quaternion.RotateTowards(transform.rotation, want, turnSpeed * Mathf.Lerp(0.35f, 1f, k) * dt);
             }
             Animate(dt);
+        }
+
+        // If the ground ever lets him through (a gap in a set, a walk off the edge of the modelled world), put him
+        // back where he last stood rather than letting him fall forever.
+        Vector3 lastFooting, lastPos; bool hasFooting;
+        public float fallLimit = 2.5f;
+        void SafetyNet()
+        {
+            if ((transform.position - lastPos).sqrMagnitude > 9f) hasFooting = false;   // teleported: a new place
+            lastPos = transform.position;
+            if (cc.isGrounded) { lastFooting = transform.position; hasFooting = true; return; }
+            if (hasFooting && transform.position.y < lastFooting.y - fallLimit)
+            {
+                cc.enabled = false;
+                transform.position = lastFooting - velocity.normalized * 0.6f;   // a step back from the edge
+                velocity = Vector3.zero;
+                cc.enabled = true;
+                lastPos = transform.position;
+            }
         }
 
         public void FaceTowards(Vector3 point, float dt)
