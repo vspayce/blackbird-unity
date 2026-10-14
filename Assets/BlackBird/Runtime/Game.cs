@@ -91,7 +91,8 @@ namespace BlackBird
             float speed = push < 0.05f ? 0 : (push < 0.7f ? Mathf.Lerp(strollSpeed * 0.6f, strollSpeed, push / 0.7f) : Mathf.Lerp(strollSpeed, walkSpeed, (push - 0.7f) / 0.3f));
             if (input.Hurry && push > 0.5f) speed = hurrySpeed;
             holmes.Drive(push > 0.05f ? dir.normalized * speed : Vector3.zero, Time.unscaledDeltaTime);   // Focus slows the world, not Holmes
-            if (m.y > 0.2f && holmes.Speed > 0.3f && Time.unscaledTime - lastLook > 0.8f)
+            // (a stick pushed mostly forward only: steering diagonally while the camera chases would walk in circles)
+            if (m.y > 0.5f && Mathf.Abs(m.x) < 0.35f && holmes.Speed > 0.3f && Time.unscaledTime - lastLook > 0.8f)
             {
                 // ease toward Holmes's heading, more strongly the further off it is
                 float heading = holmes.transform.eulerAngles.y;

@@ -20,6 +20,7 @@ namespace BlackBird
         public bool Focus { get; private set; }
         public bool Back { get; private set; }
         public bool UsingTouch { get; private set; }
+        public float Turn { get; private set; }        // keyboard turning, -1..1 (not counted as "looking")
         public bool Hurry { get; private set; }         // Shift, or the left stick pushed all the way with the stick clicked
         public bool LookedThisFrame { get; private set; }   // any deliberate camera input (for the auto-follow camera)
         public bool MouseCaptured => Cursor.lockState == CursorLockMode.Locked;
@@ -44,10 +45,11 @@ namespace BlackBird
         {
             I = this;
             move = new InputAction("move", InputActionType.Value);
-            move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s").With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
-            // arrows: up/down walk, left/right turn (the camera and Holmes together)
+            // keyboard: W/S (or up/down) walk forward and back; A/D (or left/right) turn, camera and all
+            move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s");
             move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow");
             turn = new InputAction("turn", InputActionType.Value);
+            turn.AddCompositeBinding("1DAxis").With("Negative", "<Keyboard>/a").With("Positive", "<Keyboard>/d");
             turn.AddCompositeBinding("1DAxis").With("Negative", "<Keyboard>/leftArrow").With("Positive", "<Keyboard>/rightArrow");
             hurry = new InputAction("hurry", InputActionType.Button);
             hurry.AddBinding("<Keyboard>/leftShift"); hurry.AddBinding("<Keyboard>/rightShift"); hurry.AddBinding("<Gamepad>/leftStickPress");
@@ -81,7 +83,8 @@ namespace BlackBird
             var m = move.ReadValue<Vector2>();
             var l = look.ReadValue<Vector2>() * stickLookSpeed * Time.unscaledDeltaTime;
 
-            l.x += turn.ReadValue<float>() * turnSpeed * Time.unscaledDeltaTime;
+            Turn = turn.ReadValue<float>();
+            l.x += Turn * turnSpeed * Time.unscaledDeltaTime;
 
             // Mouse: click the game to capture the mouse, then it looks around without dragging (Esc frees
             // it; browsers do that themselves). Dragging still works while it isn't captured.
@@ -138,7 +141,8 @@ namespace BlackBird
 
             Move = Vector2.ClampMagnitude(m, 1f);
             Look = l;
-            LookedThisFrame = l.sqrMagnitude > 0.0004f;
+            var manual = l; manual.x -= Turn * turnSpeed * Time.unscaledDeltaTime;
+            LookedThisFrame = manual.sqrMagnitude > 0.0004f;
             Hurry = hurry.IsPressed();
             Act = act.WasPressedThisFrame() || uiAct;
             Focus = focus.WasPressedThisFrame() || uiFocus;
