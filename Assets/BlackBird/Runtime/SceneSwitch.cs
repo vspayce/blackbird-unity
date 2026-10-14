@@ -1,6 +1,7 @@
 // Moving between the places in this build: a link (?scene=hopkins, ?scene=hopkins-day, ?scene=alley) opens
 // that place, and in the game the number keys do: 1 Burritt Alley, 2 the Hopkins house by night, 3 by day.
 // Tab switches the Hopkins house between night and day.
+// It installs itself when the game starts, so it works whichever scene opens first and whatever that scene holds.
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -9,19 +10,37 @@ namespace BlackBird
 {
     public class SceneSwitch : MonoBehaviour
     {
-        static bool urlChecked;
+        static SceneSwitch instance;
         static readonly string[] Scenes = { "BurrittAlley", "HopkinsNight", "HopkinsDay" };
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void Install()
+        {
+            if (!instance)
+            {
+                var go = new GameObject("SceneSwitch");
+                DontDestroyOnLoad(go);
+                instance = go.AddComponent<SceneSwitch>();
+            }
+            var want = FromUrl(Application.absoluteURL);
+            if (want != null && want != SceneManager.GetActiveScene().name) Go(want);
+        }
+
+        static string FromUrl(string url)
+        {
+            if (string.IsNullOrEmpty(url)) return null;
+            int q = url.IndexOf("scene=");
+            if (q < 0) return null;
+            var v = url.Substring(q + 6).Split('&', '#')[0].ToLowerInvariant();
+            return v == "hopkins" || v == "hopkins-night" || v == "night" ? "HopkinsNight"
+                 : v == "hopkins-day" || v == "day" ? "HopkinsDay"
+                 : v == "alley" ? "BurrittAlley" : null;
+        }
 
         void Awake()
         {
-            if (urlChecked) return;
-            urlChecked = true;
-            var url = Application.absoluteURL ?? "";
-            int q = url.IndexOf("scene=");
-            if (q < 0) return;
-            var v = url.Substring(q + 6).Split('&', '#')[0].ToLowerInvariant();
-            string want = v == "hopkins" || v == "hopkins-night" ? "HopkinsNight" : v == "hopkins-day" || v == "day" ? "HopkinsDay" : v == "alley" ? "BurrittAlley" : null;
-            if (want != null && want != SceneManager.GetActiveScene().name) Go(want);
+            // scenes built earlier carry their own copy; the one installed at start is enough
+            if (instance && instance != this) Destroy(this);
         }
 
         void Update()
