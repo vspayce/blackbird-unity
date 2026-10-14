@@ -102,6 +102,11 @@ def patch():
     import hopkins_house as HH
     HH.conservatory = raised_conservatory
     K.build_solarium_glass = palm_house
+    K.gasolier = room_gasolier
+    orig_ceiling = K.coffered_ceiling
+    K.coffered_ceiling = lambda *a, **kw: stencilled_ceiling(orig_ceiling, *a, **kw)
+    orig_fireplace = K.fireplace
+    K.fireplace = lambda *a, **kw: grand_fireplace(orig_fireplace, *a, **kw)
     orig_rooms = K.rooms
 
     def rooms():
@@ -918,3 +923,81 @@ def terraces():
     sphere('marble_white', (0, y3 + 2.0, -45.0), 0.3, 10)
     K.collide(-2.4, y3, -47.4, 2.4, y3 + 0.5, -42.6)
     INTERACT.append(dict(id='terrace', label='The view from the terrace', pos=[0, y3 + 1.2, -48.6], r=2.5))
+
+
+# ---- every room: ceilings, gasoliers, chimney-pieces ----------------------------------------------------------
+
+def room_gasolier(x, y_ceiling, z, arms=6, drop=1.6, r=0.7):
+    """The house's gasoliers, grander: two tiers of globes on scrolled arms, a gilt ring, a pendant light."""
+    y = y_ceiling - drop
+    tube('brass', [(x, y_ceiling, z), (x, y + 0.35, z)], 0.025)
+    cyl('gilt_frame', (x, y_ceiling - 0.06, z), 0.06, 0.28, 0.22, seg=12)              # the ceiling cup
+    sphere('brass', (x, y + 0.3, z), 0.12, 10)
+    cyl('brass', (x, y - 0.25, z), 0.55, 0.06, 0.1, seg=10)
+    n = max(arms, 8)
+    for tier, (rr, dy, k_n) in enumerate(((r * 1.15, 0.0, n), (r * 0.6, 0.42, max(4, n // 2)))):
+        yt = y + dy
+        for k in range(k_n):
+            a = 2 * math.pi * k / k_n + tier * 0.3
+            p = Vector((x + rr * math.cos(a), yt + 0.1, z + rr * math.sin(a)))
+            tube('brass', [(x, yt - 0.04, z), (x + rr * 0.5 * math.cos(a), yt - 0.16, z + rr * 0.5 * math.sin(a)), p], 0.012)
+            cyl('brass', p - Vector((0, 0.03, 0)), 0.045, 0.026, 0.04, seg=8)
+            sphere('lamp_glass', p + Vector((0, 0.07, 0)), 0.075 if tier == 0 else 0.06, 10)
+        for k in range(16):
+            a0, a1 = 2 * math.pi * k / 16, 2 * math.pi * (k + 1) / 16
+            tube('gilt_frame', [(x + rr * 0.5 * math.cos(a0), yt - 0.16, z + rr * 0.5 * math.sin(a0)),
+                                (x + rr * 0.5 * math.cos(a1), yt - 0.16, z + rr * 0.5 * math.sin(a1))], 0.01, 4)
+    sphere('lamp_glass', (x, y - 0.4, z), 0.1, 10)
+    K.LAMPS.append([x, y, z])
+
+
+def stencilled_ceiling(orig, x0, x1, z0, z1, y, beam='oak_panel', field='fresco_gothic', step=1.6):
+    """The coffered ceiling with each coffer framed in a painted stencil border and a gilt bead, a deep painted
+    cornice round the room, and a gilt ceiling rose in the middle."""
+    orig(x0, x1, z0, z1, y, beam=beam, field=field, step=step)
+    nx, nz = max(1, int((x1 - x0) / step)), max(1, int((z1 - z0) / step))
+    for i in range(nx):
+        for k in range(nz):
+            a0, a1 = x0 + i * (x1 - x0) / nx + 0.1, x0 + (i + 1) * (x1 - x0) / nx - 0.1
+            b0, b1 = z0 + k * (z1 - z0) / nz + 0.1, z0 + (k + 1) * (z1 - z0) / nz - 0.1
+            bw = min(0.16, (a1 - a0) * 0.12)
+            for (p0, p1, q0, q1) in ((a0, a1, b0, b0 + bw), (a0, a1, b1 - bw, b1), (a0, a0 + bw, b0, b1), (a1 - bw, a1, b0, b1)):
+                wbox('frieze_paint', p0, p1, y - 0.012, y - 0.004, q0, q1)
+            for (p0, p1, q0, q1) in ((a0 + bw, a1 - bw, b0 + bw, b0 + bw + 0.025), (a0 + bw, a1 - bw, b1 - bw - 0.025, b1 - bw),
+                                     (a0 + bw, a0 + bw + 0.025, b0 + bw, b1 - bw), (a1 - bw - 0.025, a1 - bw, b0 + bw, b1 - bw)):
+                wbox('gilt_frame', p0, p1, y - 0.03, y - 0.01, q0, q1)
+    # the cornice: a painted cove band all round, between gilt mouldings
+    for (p0, p1, q0, q1) in ((x0, x1, z0, z0 + 0.45), (x0, x1, z1 - 0.45, z1), (x0, x0 + 0.45, z0, z1), (x1 - 0.45, x1, z0, z1)):
+        wbox('frieze_paint', p0, p1, y - 0.75, y - 0.36, q0, q1)
+        wbox('gilt_frame', p0, p1, y - 0.8, y - 0.75, q0, q1)
+    cx, cz = (x0 + x1) / 2, (z0 + z1) / 2
+    cyl('gilt_frame', (cx, y - 0.37, cz), 0.04, 0.75, 0.75, seg=24)
+    for k in range(12):
+        a = k * math.pi / 6
+        sphere('gilt_frame', (cx + 0.55 * math.cos(a), y - 0.4, cz + 0.55 * math.sin(a)), 0.07, 6)
+
+
+def grand_fireplace(orig, F, u, mat='marble_white', w=2.0, h=1.4, mirror=True):
+    """The chimney-piece as before, grander: tiled cheeks either side of the grate, a tall carved overmantel
+    framing the glass between colonnettes up to a cornice, and brass candelabra on the shelf."""
+    orig(F, u, mat=mat, w=w, h=h, mirror=mirror)
+    d = 0.45
+    for s in (-1, 1):  # tiled cheeks
+        canvas('tile_band', [F @ Vector(q) for q in ((u + s * (w / 2 - 0.28), 0.03, d + 0.055), (u + s * (w / 2 - 0.28), h - 0.3, d + 0.055),
+                                                     (u + s * (w / 2 - 0.55), h - 0.3, d + 0.055), (u + s * (w / 2 - 0.55), 0.03, d + 0.055))][::(1 if s > 0 else -1)],
+               uv=((0, 0), (2, 0), (2, 1), (0, 1)))
+    top = h + 2.35
+    for s in (-1, 1):  # colonnettes and the overmantel's cornice
+        cx = u + s * (w / 2 + 0.05)
+        lbox(F, 'carved_walnut', cx - 0.09, cx + 0.09, h + 0.08, top, d - 0.12, d + 0.06)
+        lbox(F, 'gilt_frame', cx - 0.11, cx + 0.11, top - 0.3, top - 0.24, d - 0.12, d + 0.08)
+        q = F @ Vector((cx, h + 0.08, d + 0.1))   # a candelabrum
+        cyl('brass', q, 0.42, 0.06, 0.025, seg=8)
+        for a in range(3):
+            ang = a * 2 * math.pi / 3
+            p = Vector(q) + Vector((0.12 * math.cos(ang), 0.5, 0.12 * math.sin(ang)))
+            tube('brass', [Vector(q) + Vector((0, 0.38, 0)), p], 0.01, 4)
+            sphere('lamp_glass', p + Vector((0, 0.06, 0)), 0.05, 8)
+    lbox(F, 'carved_walnut', u - w / 2 - 0.25, u + w / 2 + 0.25, top, top + 0.22, d - 0.15, d + 0.12)
+    lbox(F, 'gilt_frame', u - w / 2 - 0.3, u + w / 2 + 0.3, top + 0.22, top + 0.27, d - 0.15, d + 0.15)
+    lbox(F, 'carved_walnut', u - 0.35, u + 0.35, top + 0.27, top + 0.6, d - 0.12, d + 0.02)    # a carved crest
