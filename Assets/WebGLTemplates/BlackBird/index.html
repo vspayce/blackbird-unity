@@ -63,6 +63,21 @@
       devicePixelRatio: dpr,
       showBanner: (text, type) => { if (type === 'error') msg.textContent = text; console.log(text); },
     };
+    // Browsers (Safari above all) refuse to capture the mouse outside a click and throw; that refusal is
+    // harmless (the next click captures it), so never let it reach Unity's error banner.
+    for (const proto of [Element.prototype, HTMLCanvasElement.prototype]) {
+      const rpl = proto.requestPointerLock;
+      if (!rpl || rpl.__bb) continue;
+      const safe = function (...a) {
+        try { const r = rpl.apply(this, a); if (r && typeof r.catch === 'function') r.catch(() => {}); return r; }
+        catch (e) { console.log('Pointer lock deferred: ' + e); }
+      };
+      safe.__bb = true;
+      proto.requestPointerLock = safe;
+    }
+    window.addEventListener('unhandledrejection', e => {
+      if (e.reason && (e.reason.name === 'NotAllowedError' || /pointer ?lock/i.test(String(e.reason)))) e.preventDefault();
+    });
     const script = document.createElement('script');
     script.src = "Build/{{{ LOADER_FILENAME }}}";
     script.onload = () => {

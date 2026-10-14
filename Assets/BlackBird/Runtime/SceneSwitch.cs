@@ -59,7 +59,8 @@ namespace BlackBird
 
         public static void Go(string scene)
         {
-            if (Application.CanStreamedLevelBeLoaded(scene)) SceneManager.LoadScene(scene);
+            // free the mouse first: the next scene captures it again on a click, which browsers allow
+            if (Application.CanStreamedLevelBeLoaded(scene)) { Cursor.lockState = CursorLockMode.None; SceneManager.LoadScene(scene); }
             else Debug.LogWarning("[Black Bird] Scene not in the build: " + scene);
         }
     }
