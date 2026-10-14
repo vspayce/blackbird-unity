@@ -20,6 +20,11 @@ namespace BlackBird
         public bool Focus { get; private set; }
         public bool Back { get; private set; }
         public bool UsingTouch { get; private set; }
+        public bool Hurry { get; private set; }         // Shift, or the left stick pushed all the way with the stick clicked
+        public bool LookedThisFrame { get; private set; }   // any deliberate camera input (for the auto-follow camera)
+        public bool MouseCaptured => Cursor.lockState == CursorLockMode.Locked;
+        /// Free the mouse (close-ups, menus) or let a click capture it again.
+        public bool allowMouseCapture = true;
 
         // the touch stick, in screen pixels (the HUD draws it)
         public bool StickActive { get; private set; }
@@ -27,20 +32,25 @@ namespace BlackBird
         public Vector2 StickKnob { get; private set; }
         public float StickRadius => Screen.dpi > 0 ? Screen.dpi * 0.45f : 80f;
 
-        InputAction move, look, act, focus, back;
+        InputAction move, turn, look, act, focus, back, hurry;
         int stickFinger = -1;
         readonly HashSet<int> lookFingers = new HashSet<int>();
         readonly HashSet<int> uiFingers = new HashSet<int>();
         static readonly List<RaycastResult> hits = new List<RaycastResult>();
 
-        public float mouseSensitivity = 0.18f, stickLookSpeed = 140f, touchLookSensitivity = 0.22f;
+        public float mouseSensitivity = 0.12f, stickLookSpeed = 140f, touchLookSensitivity = 0.22f, turnSpeed = 110f;
 
         void Awake()
         {
             I = this;
             move = new InputAction("move", InputActionType.Value);
             move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/w").With("Down", "<Keyboard>/s").With("Left", "<Keyboard>/a").With("Right", "<Keyboard>/d");
-            move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow").With("Left", "<Keyboard>/leftArrow").With("Right", "<Keyboard>/rightArrow");
+            // arrows: up/down walk, left/right turn (the camera and Holmes together)
+            move.AddCompositeBinding("2DVector").With("Up", "<Keyboard>/upArrow").With("Down", "<Keyboard>/downArrow");
+            turn = new InputAction("turn", InputActionType.Value);
+            turn.AddCompositeBinding("1DAxis").With("Negative", "<Keyboard>/leftArrow").With("Positive", "<Keyboard>/rightArrow");
+            hurry = new InputAction("hurry", InputActionType.Button);
+            hurry.AddBinding("<Keyboard>/leftShift"); hurry.AddBinding("<Keyboard>/rightShift"); hurry.AddBinding("<Gamepad>/leftStickPress");
             move.AddBinding("<Gamepad>/leftStick");
             look = new InputAction("look", InputActionType.Value, "<Gamepad>/rightStick");
             act = new InputAction("act", InputActionType.Button);
@@ -49,13 +59,14 @@ namespace BlackBird
             focus.AddBinding("<Keyboard>/f"); focus.AddBinding("<Gamepad>/buttonWest");
             back = new InputAction("back", InputActionType.Button);
             back.AddBinding("<Keyboard>/escape"); back.AddBinding("<Keyboard>/backspace"); back.AddBinding("<Gamepad>/buttonEast");
-            foreach (var a in new[] { move, look, act, focus, back }) a.Enable();
+            foreach (var a in new[] { move, turn, look, act, focus, back, hurry }) a.Enable();
             EnhancedTouchSupport.Enable();
         }
 
         void OnDestroy()
         {
-            foreach (var a in new[] { move, look, act, focus, back }) a?.Dispose();
+            foreach (var a in new[] { move, turn, look, act, focus, back, hurry }) a?.Dispose();
+            Cursor.lockState = CursorLockMode.None;
             if (EnhancedTouchSupport.enabled) EnhancedTouchSupport.Disable();
         }
 
@@ -70,11 +81,24 @@ namespace BlackBird
             var m = move.ReadValue<Vector2>();
             var l = look.ReadValue<Vector2>() * stickLookSpeed * Time.unscaledDeltaTime;
 
+            l.x += turn.ReadValue<float>() * turnSpeed * Time.unscaledDeltaTime;
+
+            // Mouse: click the game to capture the mouse, then it looks around without dragging (Esc frees
+            // it; browsers do that themselves). Dragging still works while it isn't captured.
             var mouse = Mouse.current;
-            if (mouse != null && mouse.leftButton.isPressed && !OverUI(mouse.position.ReadValue(), -1) && Touch.activeTouches.Count == 0)
+            if (!allowMouseCapture && MouseCaptured) Cursor.lockState = CursorLockMode.None;
+            if (mouse != null && Touch.activeTouches.Count == 0)
             {
-                if (!mouse.leftButton.wasPressedThisFrame) l += mouse.delta.ReadValue() * mouseSensitivity;
-                UsingTouch = false;
+                if (MouseCaptured) { l += mouse.delta.ReadValue() * mouseSensitivity; UsingTouch = false; }
+                else if (mouse.leftButton.isPressed && !OverUI(mouse.position.ReadValue(), -1))
+                {
+                    if (mouse.leftButton.wasPressedThisFrame)
+                    {
+                        if (allowMouseCapture) Cursor.lockState = CursorLockMode.Locked;
+                    }
+                    else l += mouse.delta.ReadValue() * mouseSensitivity;
+                    UsingTouch = false;
+                }
             }
             if (Keyboard.current != null && Keyboard.current.anyKey.wasPressedThisFrame) UsingTouch = false;
 
@@ -114,6 +138,8 @@ namespace BlackBird
 
             Move = Vector2.ClampMagnitude(m, 1f);
             Look = l;
+            LookedThisFrame = l.sqrMagnitude > 0.0004f;
+            Hurry = hurry.IsPressed();
             Act = act.WasPressedThisFrame() || uiAct;
             Focus = focus.WasPressedThisFrame() || uiFocus;
             Back = back.WasPressedThisFrame() || uiBack;

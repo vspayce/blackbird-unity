@@ -78,6 +78,7 @@ namespace BlackBird
             if (s < 0.05f) { g = 0; rate = 1; }
             else if (s < slowest) { g = s / slowest; rate = Mathf.Lerp(1f, 0.55f, g); }
             else if (s <= walkClipSpeed) { g = 1; rate = s / walkClipSpeed; }
+            else if (runClipSpeed <= walkClipSpeed) { g = 1; rate = Mathf.Min(s / walkClipSpeed, 1.8f); }   // no run clip: a brisker walk
             else { g = 1 + Mathf.Clamp01((s - walkClipSpeed) / (runClipSpeed - walkClipSpeed)); rate = s / Mathf.Lerp(walkClipSpeed, runClipSpeed, g - 1); }
             gait = Mathf.MoveTowards(gait, g, dt * 4f);
             playRate = Mathf.MoveTowards(playRate, rate, dt * 3f);

@@ -459,6 +459,7 @@ namespace BlackBird.EditorTools
             var talk = FindClip("Talking", "Talk");
             if (walk && walk.averageSpeed.magnitude > 0.3f) walkSpeed = new Vector2(walk.averageSpeed.x, walk.averageSpeed.z).magnitude;
             if (run && run.averageSpeed.magnitude > walkSpeed) runSpeed = new Vector2(run.averageSpeed.x, run.averageSpeed.z).magnitude;
+            if (!run) runSpeed = 0;   // Walker then speeds the walk up instead of blending to a run that isn't there
             Debug.Log($"[Black Bird] {name}: idle={Src(idle)} walk={Src(walk)} ({walkSpeed:0.00} m/s) run={Src(run)} talk={Src(talk)}");
 
             var tree = new BlendTree { name = "Locomotion", blendParameter = "Gait", useAutomaticThresholds = false };

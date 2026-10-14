@@ -15,7 +15,9 @@ namespace BlackBird
         public Transform[] hiddenBySpot;        // optional: the HiddenDetail object for each spot id (heel, scent, webley)
         public string[] hiddenSpotIds;
 
-        public float walkSpeed = 1.55f, strollSpeed = 0.75f;
+        public float walkSpeed = 1.55f, strollSpeed = 0.75f, hurrySpeed = 2.4f;
+        [Tooltip("How quickly the camera swings round behind Holmes when he walks and you aren't steering it (deg/s).")]
+        public float followTurn = 120f;
         [Tooltip("Test only: pushes the move stick (x, y) when nothing else does.")]
         public Vector2 autopilot;
 
@@ -26,8 +28,14 @@ namespace BlackBird
         Action afterLines;
         string contextLabel; Action contextAct;
 
+        float lastLook = -10f;
+
         void Start()
         {
+            var ha = holmes.GetComponentInChildren<Animator>(); if (ha) ha.updateMode = AnimatorUpdateMode.UnscaledTime;
+            // Watson keeps at Holmes's shoulder: never let him body-block Holmes
+            if (watson && holmes.TryGetComponent<CharacterController>(out var hc) && watson.TryGetComponent<CharacterController>(out var wc))
+                Physics.IgnoreCollision(hc, wc);
             holmes.transform.position = Chapter1.Start;
             holmes.transform.rotation = Quaternion.LookRotation(Web.W(0, -1) - Web.W(0, 0));
             cameraRig.SnapBehind();
@@ -40,7 +48,7 @@ namespace BlackBird
             }
             Hud.I.SetObjective(Chapter1.Title, "Examine the scene. Use Focus to see what the police missed.");
             UpdateCounter();
-            Talk(new[] { ("Holmes", Chapter1.Opening) });
+            Narrate("Holmes", Chapter1.Opening);
         }
 
         void Update()
@@ -52,6 +60,7 @@ namespace BlackBird
             if (input.Focus && mode != Mode.Talk) Focus.I.Toggle();
             if (mode == Mode.Talk)
             {
+                GameInput.I.allowMouseCapture = false;
                 if (input.Act || input.Back) Hud.I.AdvanceCaption();
                 holmes.Idle(dt);
                 Follow(dt);
@@ -70,14 +79,25 @@ namespace BlackBird
                 return;
             }
 
-            // exploring
+            // exploring: move relative to the camera; the camera swings round behind Holmes as he walks
+            // unless you're steering it yourself
+            GameInput.I.allowMouseCapture = true;
             cameraRig.AddLook(input.Look);
+            if (input.LookedThisFrame) lastLook = Time.unscaledTime;
             var m = input.Move.sqrMagnitude > 0.01f ? input.Move : autopilot;
             var fwd = Quaternion.Euler(0, cameraRig.yaw, 0);
             var dir = fwd * new Vector3(m.x, 0, m.y);
             float push = m.magnitude;
             float speed = push < 0.05f ? 0 : (push < 0.7f ? Mathf.Lerp(strollSpeed * 0.6f, strollSpeed, push / 0.7f) : Mathf.Lerp(strollSpeed, walkSpeed, (push - 0.7f) / 0.3f));
-            holmes.Drive(push > 0.05f ? dir.normalized * speed : Vector3.zero, dt);
+            if (input.Hurry && push > 0.5f) speed = hurrySpeed;
+            holmes.Drive(push > 0.05f ? dir.normalized * speed : Vector3.zero, Time.unscaledDeltaTime);   // Focus slows the world, not Holmes
+            if (m.y > 0.2f && holmes.Speed > 0.3f && Time.unscaledTime - lastLook > 0.8f)
+            {
+                // ease toward Holmes's heading, more strongly the further off it is
+                float heading = holmes.transform.eulerAngles.y;
+                float off = Mathf.DeltaAngle(cameraRig.yaw, heading);
+                cameraRig.yaw += Mathf.Clamp(off, -1, 1) * Mathf.Min(Mathf.Abs(off), followTurn * Mathf.InverseLerp(0, 40, Mathf.Abs(off)) * Time.unscaledDeltaTime);
+            }
             Follow(dt);
             People(dt);
             FindContext();
@@ -150,7 +170,8 @@ namespace BlackBird
                 contextLabel = "Talk to " + Chapter1.People[i].name;
                 contextAct = () => { holmes.lookTarget = null; Talk(Chapter1.Hello[k]); };
             }
-            if (watson && Vector3.Distance(watson.transform.position, hp) < 1.6f && contextLabel == null)
+            var toW = watson ? watson.transform.position - hp : Vector3.zero; toW.y = 0;
+            if (watson && toW.magnitude < 1.8f && contextLabel == null && holmes.Speed < 0.2f && Vector3.Angle(holmes.transform.forward, toW) < 50f)
             {
                 contextLabel = "Talk to Dr. Watson";
                 contextAct = () => Talk(Chapter1.WatsonHello);
@@ -163,7 +184,7 @@ namespace BlackBird
         void UseSpot(SpotDef s)
         {
             if (s.closeup) { EnterCloseup(); return; }
-            if (s.say != null) { Talk(new[] { ("Holmes", s.say) }); return; }
+            if (s.say != null) { Narrate("Holmes", s.say); return; }
             if (s.clue != null) Collect(s.clue, true);
         }
 
@@ -187,6 +208,7 @@ namespace BlackBird
         void EnterCloseup()
         {
             mode = Mode.Closeup;
+            GameInput.I.allowMouseCapture = false;   // the clues are clicked
             cameraRig.Shot(Chapter1.Closeup.Cam, Chapter1.Closeup.Look);
             Hud.I.Letterbox(true);
             Hud.I.BackButton(true);
@@ -213,6 +235,10 @@ namespace BlackBird
         }
 
         // ---- captions -----------------------------------------------------------------------------
+        // Holmes thinking aloud: a caption that fades on its own and never stops you walking.
+        void Narrate(string who, string line) => Hud.I.Narrate(who, line);
+
+        // A conversation: the scene holds until you've read each line (E, Enter, click or tap).
         void Talk(IEnumerable<(string who, string line)> l, Action then = null)
         {
             foreach (var x in l) lines.Enqueue(x);

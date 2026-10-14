@@ -113,7 +113,7 @@ namespace BlackBird
 
             hint = Label(safe, "Hint", type, 16, TextAnchor.LowerLeft, new Color(Ink.r, Ink.g, Ink.b, 0.45f));
             Place(hint.rectTransform, new Vector2(0, 0), new Vector2(28, 12), new Vector2(900, 30)); hint.rectTransform.pivot = Vector2.zero;
-            hint.text = "WASD walk · drag to look · E examine · F Focus      Gamepad: Ⓐ act · Ⓧ Focus · Ⓑ back";
+            hint.text = "WASD walk · ←→ turn · Shift hurry · click to look with the mouse (Esc frees it) · E examine · F Focus";
 
             // rotate prompt for phones held upright
             var rp = Panel(root, "Rotate", new Color(0.03f, 0.04f, 0.05f, 1f)); Stretch(rp, 0, 0, 0, 0);
@@ -125,8 +125,20 @@ namespace BlackBird
         public void SetObjective(string title, string line) { objective.text = $"<size=20>{title.ToUpperInvariant()}</size>\n{line}"; }
         public void SetCounter(string s) => counter.text = s;
 
+        // A line that fades by itself after it's been read, without holding the game.
+        float narrateTimer;
+        public void Narrate(string who, string line)
+        {
+            if (onCaptionShown && onCaptionDone != null) return;   // a conversation has the caption
+            captionWho.text = who; captionLine.text = line;
+            onCaptionDone = null; onCaptionShown = true;
+            caption.blocksRaycasts = false;
+            narrateTimer = 2.2f + line.Length * 0.055f;
+        }
+
         public void Say(string who, string line, Action done = null)
         {
+            narrateTimer = 0;
             captionWho.text = who; captionLine.text = line;
             onCaptionDone = done; onCaptionShown = true;
             caption.blocksRaycasts = true;
@@ -198,7 +210,8 @@ namespace BlackBird
             float dt = Time.unscaledDeltaTime;
             float scale = root.localScale.x;
 
-            caption.alpha = Mathf.MoveTowards(caption.alpha, onCaptionShown ? 1 : 0, dt * 5f);
+            if (narrateTimer > 0) { narrateTimer -= dt; if (narrateTimer <= 0) { onCaptionShown = false; } }
+            caption.alpha = Mathf.MoveTowards(caption.alpha, onCaptionShown ? 1 : 0, dt * (narrateTimer > 0 || onCaptionShown ? 5f : 1.5f));
             slipTimer -= dt; slip.alpha = Mathf.MoveTowards(slip.alpha, slipTimer > 0 ? 1 : 0, dt * 3f);
 
             letterbox = Mathf.MoveTowards(letterbox, letterboxTarget, dt * 2f);
