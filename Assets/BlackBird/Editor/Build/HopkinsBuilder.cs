@@ -125,7 +125,7 @@ namespace BlackBird.EditorTools
             {
                 // a clear afternoon, the sun over the Pacific: from the west-south-west, 38° up
                 sun.color = new Color(1f, 0.95f, 0.86f); sun.intensity = 1.9f;
-                sun.transform.rotation = Quaternion.Euler(38, 245, 0);
+                sun.transform.rotation = Quaternion.Euler(36, 32, 0);   // afternoon sun from the south-west, full on the California Street front
             }
             else
             {
