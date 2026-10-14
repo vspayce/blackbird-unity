@@ -332,19 +332,18 @@ namespace BlackBird.EditorTools
         {
             var go = new GameObject("NightCity");
             var city = go.AddComponent<NightCity>();
-            var lights = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+            var glowShader = Shader.Find("BlackBird/Glow (no fog)");
+            var lights = new Material(glowShader);
             lights.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{Gen}/glow.png"));
             lights.SetColor("_BaseColor", new Color(3f, 3f, 3f, 1f));
-            SceneBuilder.Transparent(lights, true);
-            lights.SetFloat("_ColorMode", 0);
             city.lightsMaterial = SaveMat(lights, "CityLights");
             city.landMaterial = SceneBuilder.Lit("CityLand", SceneBuilder.Hex("#0d1014"), 0.05f);
             city.bayMaterial = SceneBuilder.Lit("Bay", SceneBuilder.Hex("#05080c"), 0.85f, 0.6f);
             var hills = new Material(Shader.Find("Universal Render Pipeline/Unlit")); hills.SetColor("_BaseColor", SceneBuilder.Hex("#0b0f16")); hills.SetFloat("_Cull", 0);
             city.hillsMaterial = SaveMat(hills, "FarHills");
-            var moon = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            var moon = new Material(glowShader);
             moon.SetTexture("_BaseMap", AssetDatabase.LoadAssetAtPath<Texture2D>($"{Gen}/glow.png"));
-            moon.SetColor("_BaseColor", new Color(2.6f, 2.6f, 2.4f, 1f)); SceneBuilder.Transparent(moon, true);
+            moon.SetColor("_BaseColor", new Color(2.6f, 2.6f, 2.4f, 1f));
             city.moonMaterial = SaveMat(moon, "Moon");
         }
 
