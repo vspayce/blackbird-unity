@@ -250,11 +250,14 @@ namespace BlackBird.EditorTools
             {
                 if (!m) continue;
                 var n = Bare(m.name);
-                if (n == "glass_clear")
+                if (n == "glass_clear" || n == "glass_cons")
                 {
+                    // thin clear glass: you see the palms and the city through it, and the sky and lamps in it
                     SceneBuilder.Transparent(m, false);
-                    m.SetColor("_BaseColor", new Color(0.55f, 0.62f, 0.68f, 0.14f)); m.SetFloat("_Smoothness", 0.95f); m.SetFloat("_Metallic", 0);
+                    m.SetColor("_BaseColor", n == "glass_cons" ? new Color(0.62f, 0.7f, 0.72f, 0.18f) : new Color(0.55f, 0.62f, 0.68f, 0.14f));
+                    m.SetFloat("_Smoothness", 0.96f); m.SetFloat("_Metallic", 0);
                     m.SetFloat("_Cull", 0);
+                    m.SetTexture("_BaseMap", null);
                 }
                 else if (n == "stained" || n == "candle")
                 {
@@ -424,7 +427,7 @@ namespace BlackBird.EditorTools
             ls.maxBounces = 3;
             ls.directionalityMode = LightmapsMode.NonDirectional;
             ls.ao = true; ls.aoMaxDistance = 1.2f; ls.aoExponentDirect = 0.3f; ls.aoExponentIndirect = 1.1f;
-            ls.compressLightmaps = true;
+            ls.lightmapCompression = LightmapCompression.NormalQuality;
             ls.filteringMode = LightingSettings.FilterMode.Auto;
             EditorUtility.SetDirty(ls);
             AssetDatabase.SaveAssets();
