@@ -97,19 +97,73 @@ def _shift(item, d):
 _orig = {}
 
 
+# Blender's own cone and sphere generators free a few temporary vertices, and the mempool hands those slots to the next
+# vertices made, so "everything made since" is no longer a run at the end. These build the same shapes by only adding.
+def _orient(f, out):
+    f.normal_update()
+    if f.normal.dot(out) < 0: f.normal_flip()
+
+
+def make_cyl(mat, base, height, r0, r1=None, seg=12, axis=setkit.UP, cap=True):
+    r1 = r0 if r1 is None else r1
+    bm = setkit.bm_for(mat)
+    ax = Vector(axis).normalized()
+    b = Vector(base)
+    if height < 0:
+        b, height, r0, r1 = b + ax * height, -height, r1, r0
+    t = Vector((1, 0, 0)) if abs(ax.x) < 0.9 else Vector((0, 1, 0))
+    u = ax.cross(t).normalized(); v = ax.cross(u)
+    top = b + ax * height
+    angs = [2 * math.pi * k / seg for k in range(seg)]
+    dirs = [u * math.cos(a) + v * math.sin(a) for a in angs]
+    def ring(c, r):
+        return [bm.verts.new(c + d * r) for d in dirs] if r > 1e-6 else [bm.verts.new(c)] * seg
+    lo, hi = ring(b, r0), ring(top, r1)
+    for k in range(seg):
+        k1 = (k + 1) % seg
+        q = [lo[k], lo[k1], hi[k1], hi[k]]
+        uniq = list(dict.fromkeys(q))
+        if len(uniq) < 3: continue
+        f = bm.faces.new(uniq)
+        _orient(f, dirs[k] + dirs[k1])
+        f.smooth = True
+    if cap:
+        if r0 > 1e-6: _orient(bm.faces.new(lo), -ax)
+        if r1 > 1e-6: _orient(bm.faces.new(hi), ax)
+
+
+def make_sphere(mat, c, r, seg=10):
+    bm = setkit.bm_for(mat)
+    c = Vector(c)
+    vseg = max(4, seg // 2)
+    top, bot = bm.verts.new(c + Vector((0, r, 0))), bm.verts.new(c - Vector((0, r, 0)))
+    rings = []
+    for i in range(1, vseg):
+        ph = math.pi * i / vseg
+        y, rr = math.cos(ph) * r, math.sin(ph) * r
+        rings.append([bm.verts.new(c + Vector((math.cos(2 * math.pi * k / seg) * rr, y, math.sin(2 * math.pi * k / seg) * rr))) for k in range(seg)])
+    for k in range(seg):
+        k1 = (k + 1) % seg
+        for f in (bm.faces.new([top, rings[0][k], rings[0][k1]]), bm.faces.new([bot, rings[-1][k1], rings[-1][k]])):
+            f.normal_update(); _orient(f, f.calc_center_median() - c); f.smooth = True
+        for i in range(len(rings) - 1):
+            f = bm.faces.new([rings[i][k], rings[i + 1][k], rings[i + 1][k1], rings[i][k1]])
+            _orient(f, f.calc_center_median() - c); f.smooth = True
+
+
 def _cyl(mat, base, height, r0, r1=None, seg=12, axis=setkit.UP, cap=True):
     if STATE['ctx'] is not None or STATE['done']:
-        return _orig['cyl'](mat, base, height, r0, r1, seg, axis, cap)
+        return make_cyl(mat, base, height, r0, r1, seg, axis, cap)
     bm = setkit.bm_for(mat); n0 = len(bm.verts)
-    _orig['cyl'](mat, base, height, r0, r1, seg, axis, cap)
+    make_cyl(mat, base, height, r0, r1, seg, axis, cap)
     STATE['recs'].append(('axis', [(mat, n0, len(bm.verts))], (Vector(base), Vector(axis).normalized(), height)))
 
 
 def _sphere(mat, c, r, seg=10):
     if STATE['ctx'] is not None or STATE['done']:
-        return _orig['sphere'](mat, c, r, seg)
+        return make_sphere(mat, c, r, seg)
     bm = setkit.bm_for(mat); n0 = len(bm.verts)
-    _orig['sphere'](mat, c, r, seg)
+    make_sphere(mat, c, r, seg)
     STATE['recs'].append(('point', [(mat, n0, len(bm.verts))], Vector(c)))
 
 
