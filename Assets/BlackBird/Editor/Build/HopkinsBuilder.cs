@@ -87,6 +87,9 @@ namespace BlackBird.EditorTools
             {
                 var mat = mf.GetComponent<Renderer>().sharedMaterial;
                 string n = mat ? Bare(mat.name) : "";
+                // glass lets the sun and the moon through: the rooms are lit through their windows in the bake
+                if (n.StartsWith("glass") || n == "stained" || n == "lamp_glass")
+                    mf.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
                 if (n == "lamp_glass" || n == "candle" || n.StartsWith("glass_lit")) continue;
                 mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh;
             }
@@ -212,7 +215,7 @@ namespace BlackBird.EditorTools
             systems.AddComponent<SceneSwitch>();
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
-            if (day) DayBackdrop(); else City();
+            if (day) { DayBackdrop(); Daylight(data); } else City();
 
             // ---- probes ----
             Physics.SyncTransforms();
@@ -374,6 +377,32 @@ namespace BlackBird.EditorTools
             pano.horizon = 0.30f;                  // the far hills sit about 30% down the plates
             pano.heading = -150f;                  // Alcatraz and Angel Island (40% along the strip) over the game's bay
         }
+
+        // ---- daylight indoors ----
+        // The sun comes through the windows, but a house this deep needs the sky's light too: the hall's laylight
+        // pours down as a broad soft source, and each room gets the even glow of daylight off its windows.
+        static void Daylight(Dictionary<string, object> data)
+        {
+            var parent = new GameObject("Daylight").transform;
+            var h = L(data["hall"]).Select(F).ToArray();
+            var hb = Web.Box(h[0], 12.2f, h[2], h[1], 12.2f, h[3]);
+            var lay = new GameObject("Laylight").AddComponent<Light>();
+            lay.transform.SetParent(parent, false); lay.transform.position = hb.center; lay.transform.rotation = Quaternion.Euler(90, 0, 0);
+            lay.type = LightType.Rectangle; lay.areaSize = new Vector2(hb.size.x * 0.8f, hb.size.z * 0.8f);
+            lay.color = new Color(1f, 0.96f, 0.88f); lay.intensity = DayLaylight;
+            lay.lightmapBakeType = LightmapBakeType.Baked;
+            foreach (var r in L(data["rooms"]).Select(D))
+            {
+                float y = F(r["y"]);
+                var b = Web.Box(F(r["x0"]), y + 3.4f, F(r["z0"]), F(r["x1"]), y + 3.4f, F(r["z1"]));
+                var l = new GameObject("Day_" + S(r, "id")).AddComponent<Light>();
+                l.transform.SetParent(parent, false); l.transform.position = b.center;
+                l.type = LightType.Point; l.color = new Color(0.93f, 0.95f, 1f);
+                l.intensity = DayRoomFill; l.range = Mathf.Max(b.size.x, b.size.z) * 0.9f + 2f;
+                l.lightmapBakeType = LightmapBakeType.Baked; l.shadows = LightShadows.Soft; l.shapeRadius = 1.2f;
+            }
+        }
+        const float DayLaylight = 4f, DayRoomFill = 2.2f;
 
         // ---- probes --------------------------------------------------------------------------------------
         static void LightProbes(Dictionary<string, object> data)
