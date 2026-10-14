@@ -28,7 +28,7 @@ namespace BlackBird.EditorTools
 
         // gaslight
         static readonly Color Gas = new Color(1f, 0.70f, 0.40f);
-        public static float LampIntensity = 3.2f, LampRange = 11f, BigLampIntensity = 7f, BigLampRange = 20f;
+        public static float LampIntensity = 5.5f, LampRange = 12f, BigLampIntensity = 13f, BigLampRange = 22f;
 
         // Holmes's remarks on the things he can look at (free roam; the chapter's own lines live in the case)
         static readonly Dictionary<string, string> Lines = new Dictionary<string, string>
@@ -262,13 +262,15 @@ namespace BlackBird.EditorTools
                     var tex = m.GetTexture("_BaseMap");
                     m.EnableKeyword("_EMISSION");
                     if (tex) m.SetTexture("_EmissionMap", tex);
-                    m.SetColor("_EmissionColor", n == "candle" ? new Color(1f, 0.75f, 0.45f) * 3f : Color.white * (day ? 1.6f : 0.55f));
+                    m.SetColor("_EmissionColor", n == "candle" ? new Color(1f, 0.75f, 0.45f) * 3f : Color.white * (day ? 1.6f : 0.35f));
                     m.SetColor("_BaseColor", n == "candle" ? new Color(1f, 0.8f, 0.5f) : Color.white * 0.3f);
                     m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.BakedEmissive;
                 }
                 else if (n == "lamp_glass")
                 {
-                    m.SetColor("_EmissionColor", day ? new Color(0.25f, 0.22f, 0.18f) : SceneBuilder.Hex("#ffcf8a") * 5f);
+                    // a gas mantle's glow: warm white at the heart, enough to bloom a little, not a blob
+                    m.SetColor("_EmissionColor", day ? new Color(0.25f, 0.22f, 0.18f) : new Color(1f, 0.82f, 0.58f) * 2.2f);
+                    m.SetColor("_BaseColor", new Color(1f, 0.92f, 0.8f));
                     m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
                 }
                 else if (n.StartsWith("glass_lit"))
@@ -372,7 +374,7 @@ namespace BlackBird.EditorTools
             for (float z = hb.min.z + 1; z <= hb.max.z - 1; z += 2.5f)
             for (float y = 3.5f; y <= 12f; y += 2.5f) pts.Add(new Vector3(x, y, z));
             for (float x = -60; x <= 60; x += 6)
-            for (float z = -60; z <= 30; z += 6)
+            for (float z = -60; z <= 60; z += 6)
             {
                 if (Physics.Raycast(new Vector3(x, 60, z), Vector3.down, out var hit, 120))
                 { pts.Add(hit.point + Vector3.up * 0.8f); pts.Add(hit.point + Vector3.up * 2.6f); }

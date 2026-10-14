@@ -91,7 +91,7 @@ def materials():
     t, n = tiles_tex('hall_tiles'); material('hall_tiles', tex=t, nrm=n, rough=0.3, scale=3.2)
     material('tile_band', tex=band_tex('tile_band'), rough=0.3, scale=None)
     material('carved_walnut', '#24160e', rough=0.42)
-    material('bronze', '#3a2a18', rough=0.35, metal=0.85)
+    material('bronze_dark', '#3a2a18', rough=0.35, metal=0.85)
     material('cove_gold', '#8a6a34', rough=0.5, metal=0.6)
     material('cove_ground', '#3a2a1a', rough=0.85)
 
@@ -99,6 +99,9 @@ def materials():
 # ---- patches ---------------------------------------------------------------------------------------------
 
 def patch():
+    import hopkins_house as HH
+    HH.conservatory = raised_conservatory
+    K.build_solarium_glass = palm_house
     orig_rooms = K.rooms
 
     def rooms():
@@ -168,16 +171,16 @@ def arch(F, u0, u1, v_spring, v_top, depth=0.3, mat='carved_walnut', spandrel='t
     return apex
 
 
-def clustered_post(x, z, y0, y1, r=0.16, lamp=None, facing=(0, 0, 1)):
+def clustered_post(x, z, y0, y1, r=0.16, lamp=None, facing=(0, 0, 1), mat='carved_walnut', band='gilt_frame'):
     """A carved walnut pier: a core and four colonnettes, a moulded base and a gilt-banded capital. lamp: put a
     cluster of three gas globes on a bracket on the side facing `facing` at this height."""
-    cyl('carved_walnut', (x, y0, z), 0.45, r * 2.4, r * 2.1, seg=8)
-    cyl('carved_walnut', (x, y0 + 0.45, z), y1 - y0 - 0.95, r, seg=12)
+    cyl(mat, (x, y0, z), 0.45, r * 2.4, r * 2.1, seg=8)
+    cyl(mat, (x, y0 + 0.45, z), y1 - y0 - 0.95, r, seg=12)
     for k in range(4):
         a = k * math.pi / 2 + math.pi / 4
-        cyl('carved_walnut', (x + 1.15 * r * math.cos(a), y0 + 0.45, z + 1.15 * r * math.sin(a)), y1 - y0 - 0.95, r * 0.42, seg=8)
-    cyl('gilt_frame', (x, y1 - 0.5, z), 0.08, r * 1.9, seg=12)
-    cyl('carved_walnut', (x, y1 - 0.42, z), 0.42, r * 1.9, r * 2.6, seg=8)
+        cyl(mat, (x + 1.15 * r * math.cos(a), y0 + 0.45, z + 1.15 * r * math.sin(a)), y1 - y0 - 0.95, r * 0.42, seg=8)
+    cyl(band, (x, y1 - 0.5, z), 0.08, r * 1.9, seg=12)
+    cyl(mat, (x, y1 - 0.42, z), 0.42, r * 1.9, r * 2.6, seg=8)
     K.collide(x - r * 1.6, y0, z - r * 1.6, x + r * 1.6, y1, z + r * 1.6)
     if lamp is not None:
         f = Vector(facing).normalized()
@@ -231,19 +234,19 @@ def torchere_figure(x, z, rot, h=2.0):
     K.plinth(x, z, 1.1, 0.6, 'marble_white')
     F = Matrix.Translation((x, 1.16, z)) @ Matrix.Rotation(rot, 4, 'Y')
     k = h / 2.0
-    cyl('bronze', F @ Vector((0, 0, 0)), 0.15, 0.3 * k, 0.26 * k, seg=12)                      # rock
-    cyl('bronze', F @ Vector((0, 0.15 * k, 0)), 0.8 * k, 0.2 * k, 0.15 * k, seg=12)           # draped figure
-    cyl('bronze', F @ Vector((0, 0.95 * k, 0)), 0.5 * k, 0.15 * k, 0.17 * k, seg=12)          # torso
-    sphere('bronze', F @ Vector((0, 1.56 * k, 0.02)), 0.11 * k, 12)
-    cyl('bronze', F @ Vector((0, 1.45 * k, 0)), 0.1 * k, 0.05 * k, seg=8)
+    cyl('bronze_dark', F @ Vector((0, 0, 0)), 0.15, 0.3 * k, 0.26 * k, seg=12)                      # rock
+    cyl('bronze_dark', F @ Vector((0, 0.15 * k, 0)), 0.8 * k, 0.2 * k, 0.15 * k, seg=12)           # draped figure
+    cyl('bronze_dark', F @ Vector((0, 0.95 * k, 0)), 0.5 * k, 0.15 * k, 0.17 * k, seg=12)          # torso
+    sphere('bronze_dark', F @ Vector((0, 1.56 * k, 0.02)), 0.11 * k, 12)
+    cyl('bronze_dark', F @ Vector((0, 1.45 * k, 0)), 0.1 * k, 0.05 * k, seg=8)
     hand = F @ Vector((0.05 * k, 2.15 * k, 0))
-    tube('bronze', [F @ Vector((0.15 * k, 1.38 * k, 0)), F @ Vector((0.22 * k, 1.8 * k, 0.02)), hand], 0.045 * k, 8)
-    tube('bronze', [F @ Vector((-0.15 * k, 1.38 * k, 0)), F @ Vector((-0.24 * k, 1.1 * k, 0.12 * k)), F @ Vector((-0.18 * k, 0.9 * k, 0.2 * k))], 0.045 * k, 8)
+    tube('bronze_dark', [F @ Vector((0.15 * k, 1.38 * k, 0)), F @ Vector((0.22 * k, 1.8 * k, 0.02)), hand], 0.045 * k, 8)
+    tube('bronze_dark', [F @ Vector((-0.15 * k, 1.38 * k, 0)), F @ Vector((-0.24 * k, 1.1 * k, 0.12 * k)), F @ Vector((-0.18 * k, 0.9 * k, 0.2 * k))], 0.045 * k, 8)
     top = Vector(hand) + Vector((0, 0.1, 0))
     for a in range(5):
         ang = a * 2 * math.pi / 5
         p = top + Vector((0.32 * math.cos(ang), 0.18, 0.32 * math.sin(ang)))
-        tube('bronze', [top, p], 0.018)
+        tube('bronze_dark', [top, p], 0.018)
         sphere('lamp_glass', p + Vector((0, 0.1, 0)), 0.11, 10)
     sphere('lamp_glass', top + Vector((0, 0.42, 0)), 0.13, 10)
     K.LAMPS.append(list(top + Vector((0, 0.3, 0))))
@@ -531,4 +534,387 @@ def grand_hall(R):
 # ---- everything new beyond the patched builders --------------------------------------------------------------
 
 def build(R):
-    pass
+    rear_verandas()
+    terraces()
+
+
+# ---- outside --------------------------------------------------------------------------------------------------
+
+def ngon(mat, pts, both=True):
+    bm = bm_for(mat)
+    bm.faces.new([bm.verts.new(Vector(p)) for p in pts])
+    if both:
+        bm.faces.new([bm.verts.new(Vector(p)) for p in reversed(pts)])
+
+
+def wall_run(a, b, y0, y1, glass='glass_cons', plinth=0.6, mullion=1.5, door=None):
+    """A glazed wall from a to b (x, z): a stone plinth, glass in iron mullions with a transom, a stone cap.
+    door: (u0, u1) along the run left open (a pair of glazed doors stand back in it)."""
+    A, B = Vector((a[0], 0, a[1])), Vector((b[0], 0, b[1]))
+    r = (B - A).normalized(); L = (B - A).length
+    F = frame(A, r, Vector((-r.z, 0, r.x)))
+    spans = [(0, L)] if not door else [(0, door[0]), (door[1], L)]
+    for u0, u1 in spans:
+        if u1 - u0 < 0.05: continue
+        lbox(F, 'ashlar', u0, u1, y0 - 0.1, y0 + plinth, -0.25, 0.25)
+        lbox(F, 'trim_stone', u0, u1, y0 + plinth, y0 + plinth + 0.08, -0.3, 0.3)
+        lbox(F, glass, u0, u1, y0 + plinth + 0.08, y1, -0.015, 0.015)
+        n = max(1, round((u1 - u0) / mullion))
+        for k in range(n + 1):
+            u = u0 + (u1 - u0) * k / n
+            lbox(F, 'iron', u - 0.045, u + 0.045, y0 + plinth, y1, -0.06, 0.06)
+        lbox(F, 'iron', u0, u1, y0 + 2.8, y0 + 2.86, -0.05, 0.05)
+        K.collide(min(A.x + r.x * u0, A.x + r.x * u1) - 0.25 * abs(r.z), y0, min(A.z + r.z * u0, A.z + r.z * u1) - 0.25 * abs(r.x),
+                  max(A.x + r.x * u0, A.x + r.x * u1) + 0.25 * abs(r.z), y1, max(A.z + r.z * u0, A.z + r.z * u1) + 0.25 * abs(r.x))
+    lbox(F, 'trim_stone', -0.1, L + 0.1, y1, y1 + 0.25, -0.3, 0.3)
+    if door:
+        u0, u1 = door
+        for s in (u0, u1):
+            lbox(F, 'trim_stone', s - 0.2, s + 0.2, y0 - 0.1, y1, -0.3, 0.3)
+        lbox(F, 'trim_stone', u0, u1, y0 + 3.1, y0 + 3.35, -0.3, 0.3)
+        lbox(F, glass, u0, u1, y0 + 3.35, y1, -0.015, 0.015)
+        for s, d in ((u0 + 0.1, 1), (u1 - 0.1, -1)):        # the leaves, standing open outward
+            G = F @ Matrix.Translation((s, 0, 0)) @ Matrix.Rotation(-d * 1.25, 4, 'Y')
+            lbox(G, 'iron', 0, d * (u1 - u0) / 2 - d * 0.1, y0, y0 + 3.1, -0.03, 0.03) if d > 0 else \
+                lbox(G, 'iron', d * (u1 - u0) / 2 - d * 0.1, 0, y0, y0 + 3.1, -0.03, 0.03)
+
+
+def barrel(x0, x1, za, zb, sp, sharp=0.55, along='z', rib=1.6, gables=(True, True), glass='glass_cons'):
+    """A pointed glass barrel roof spanning x0..x1 (or z when along='x'), running from za to zb, on iron ribs,
+    with traceried glass gables at the ends. Returns its apex height."""
+    P, apex = pointed(x0, x1, sp, n=10, sharp=sharp)
+    def W(u, v, t):  # profile u at height v, at position t along the run
+        return (u, v, t) if along == 'z' else (t, v, u)
+    for (ua, va), (ub, vb) in zip(P, P[1:]):
+        quad(glass, W(ua, va, za), W(ub, vb, za), W(ub, vb, zb), W(ua, va, zb))
+    n = max(1, round(abs(zb - za) / rib))
+    for k in range(n + 1):
+        t = za + (zb - za) * k / n
+        tube('iron', [W(u, v + 0.02, t) for u, v in P], 0.05 if k in (0, n) else 0.035, 4)
+    for u, v in P[::4]:
+        tube('iron', [W(u, v + 0.03, za), W(u, v + 0.03, zb)], 0.025, 4)
+    for t, on in ((za, gables[0]), (zb, gables[1])):
+        if not on: continue
+        ngon(glass, [W(u, v, t) for u, v in P])
+        # tracery: a wheel window and mullions
+        mid = (x0 + x1) / 2
+        cy = sp + (apex - sp) * 0.45
+        R = (x1 - x0) * 0.18
+        for ring in (R, R * 0.45):
+            tube('iron', [W(mid + ring * math.cos(a), cy + ring * math.sin(a), t) for a in np.linspace(0, 2 * math.pi, 25)], 0.04, 4)
+        for a in np.linspace(0, 2 * math.pi, 13)[:-1]:
+            tube('iron', [W(mid + R * 0.45 * math.cos(a), cy + R * 0.45 * math.sin(a), t), W(mid + R * math.cos(a), cy + R * math.sin(a), t)], 0.025, 4)
+        for u in np.linspace(x0 + (x1 - x0) * 0.12, x1 - (x1 - x0) * 0.12, 6):
+            # each mullion up to the arch (but not across the wheel)
+            v_top = max(v for uu, v in P if abs(uu - u) < (x1 - x0) / 10) - 0.1
+            if abs(u - mid) < R: v_top = cy - R
+            tube('iron', [W(u, sp, t), W(u, v_top, t)], 0.03, 4)
+    return apex
+
+
+def dome(xc, zc, y0, r, h, mat='glass_cons', ribs=12, lantern=True):
+    """A ribbed dome on a cylindrical drum's top at y0, with a lantern and a needle spire."""
+    prof = [(r * math.cos(t * math.pi / 2), y0 + h * math.sin(t * math.pi / 2)) for t in np.linspace(0, 1, 8)]
+    for (r0, ya), (r1, yb) in zip(prof, prof[1:]):
+        cyl(mat, (xc, ya, zc), yb - ya, max(r0, 0.05), max(r1, 0.05), seg=24, cap=False)
+    for k in range(ribs):
+        a = k * 2 * math.pi / ribs
+        tube('iron', [(xc + math.cos(a) * (rr + 0.04), y, zc + math.sin(a) * (rr + 0.04)) for rr, y in prof], 0.06, 4)
+    cyl('trim_stone', (xc, y0 - 0.25, zc), 0.35, r + 0.25, seg=24)
+    if lantern:
+        top = y0 + h
+        cyl('trim_stone', (xc, top - 0.1, zc), 0.25, r * 0.22, seg=12)
+        cyl(mat, (xc, top + 0.15, zc), 1.2, r * 0.18, seg=12, cap=False)
+        for k in range(8):
+            a = k * math.pi / 4
+            tube('iron', [(xc + math.cos(a) * r * 0.19, top + 0.15, zc + math.sin(a) * r * 0.19), (xc + math.cos(a) * r * 0.19, top + 1.35, zc + math.sin(a) * r * 0.19)], 0.03, 4)
+        cyl('slate', (xc, top + 1.35, zc), 1.6, r * 0.24, 0.02, seg=8, cap=False)
+        tube('iron', [(xc, top + 2.9, zc), (xc, top + 4.6, zc)], 0.04, 4)
+        sphere('gilt_frame', (xc, top + 3.2, zc), 0.12, 8)
+
+
+def hanging_lantern(x, y_top, z, drop=1.8):
+    tube('iron', [(x, y_top, z), (x, y_top - drop, z)], 0.015, 4)
+    cyl('iron', (x, y_top - drop - 0.05, z), 0.08, 0.16, 0.05, seg=8)
+    cyl('lamp_glass', (x, y_top - drop - 0.45, z), 0.4, 0.13, 0.18, seg=8)
+    cyl('iron', (x, y_top - drop - 0.5, z), 0.06, 0.06, 0.16, seg=8)
+    K.LAMPS.append([x, y_top - drop - 0.25, z])
+
+
+def marble_fountain(x, z):
+    """A three-tier marble fountain in a wide basin, water falling from tier to tier."""
+    cyl('marble_white', (x, 0, z), 0.6, 3.2, 3.3, seg=32)
+    cyl('water', (x, 0.5, z), 0.04, 2.95, seg=32)
+    for (y, r, h) in ((0.55, 0.4, 1.3), (1.85, 1.6, 0.18), (2.03, 0.25, 0.9), (2.93, 0.95, 0.14), (3.07, 0.15, 0.7), (3.77, 0.45, 0.1)):
+        cyl('marble_white', (x, y, z), h, r, r * 0.92, seg=24)
+    for (y, r) in ((2.0, 1.5), (3.04, 0.88)):
+        cyl('water', (x, y, z), 0.02, r, seg=24)
+        cyl('water', (x, y - 0.6, z), 0.6, r + 0.02, r + 0.06, seg=24, cap=False)   # the falling sheet
+    for k in range(4):  # four dolphins spouting into the basin
+        a = k * math.pi / 2 + math.pi / 4
+        p = Vector((x + math.cos(a) * 0.55, 0.9, z + math.sin(a) * 0.55))
+        sphere('bronze_dark', p, 0.18, 8)
+        tube('water', [p, p + Vector((math.cos(a) * 1.2, -0.2, math.sin(a) * 1.2)), p + Vector((math.cos(a) * 1.9, -0.45, math.sin(a) * 1.9))], 0.02, 4)
+    sphere('gilt_frame', (x, 3.95, z), 0.14, 10)
+    K.collide(x - 3.2, 0, z - 3.2, x + 3.2, 0.7, z + 3.2)
+    INTERACT.append(dict(id='palmfountain', label='The palm house fountain', pos=[x, 0.8, z + 3.4], r=2.0))
+
+
+def palm_house():
+    """The solarium opened through three pointed arches into a cross-shaped palm house: glass on iron ribs, a
+    ribbed dome over the crossing, palms, a fountain, and doors at the far end onto the terraces."""
+    H5 = K.H
+    x0, x1, zf, zb = -9.0, 9.0, -14.0, -27.5
+    tx0, tx1, tz0, tz1 = -13.5, 13.5, -24.0, -17.0      # the transept
+    zc = (tz0 + tz1) / 2
+    sp = 5.0
+    # the house wall: four stone piers and three pointed arches, with a band and the glazed lean-to over the
+    # solarium as before
+    for (pa, pb) in ((-7.3, -6.4), (-3.2, -2.6), (2.6, 3.2), (6.4, 7.3)):
+        wbox('ashlar', pa, pb, -0.1, H5 + 1.0, zf - 0.3, zf + 0.3)
+        wbox('trim_stone', pa - 0.05, pb + 0.05, 2.5, 2.65, zf - 0.35, zf + 0.35)
+        K.collide(pa, 0, zf - 0.3, pb, H5, zf + 0.3)
+    for (a, b) in ((-6.4, -3.2), (-2.6, 2.6), (3.2, 6.4)):
+        arch(frame((a, 0, zf), (1, 0, 0), (0, 0, 1)), 0, b - a, 2.65, H5 + 1.0, depth=0.6, mat='trim_stone', spandrel='ashlar', sharp=0.6)
+    bm = bm_for('glass_clear')
+    q = [(-7, H5 + 1.0, zf), (7, H5 + 1.0, zf), (7, H5 + 2.5, -6), (-7, H5 + 2.5, -6)]
+    bm.faces.new([bm.verts.new(p) for p in q])
+    for k in range(8):
+        x = -7 + k * 2
+        tube('iron', [(x, H5 + 1.0, zf), (x, H5 + 2.5, -6)], 0.03, 4)
+    # floors
+    wbox('hall_tiles', x0, x1, -0.1, 0.0, zb, zf)
+    wbox('hall_tiles', tx0, tx1, -0.1, 0.0, tz0, tz1)
+    # glazed walls round the cross
+    door = (x1 - x0) / 2 - 1.6
+    runs = [((x0, zf), (x0, tz1)), ((x0, tz1), (tx0, tz1)), ((tx0, tz1), (tx0, tz0)), ((tx0, tz0), (x0, tz0)),
+            ((x0, tz0), (x0, zb)), ((x0, zb), (x1, zb)), ((x1, zb), (x1, tz0)), ((x1, tz0), (tx1, tz0)),
+            ((tx1, tz0), (tx1, tz1)), ((tx1, tz1), (x1, tz1)), ((x1, tz1), (x1, zf))]
+    for a, b in runs:
+        wall_run(a, b, 0.0, sp, door=(door, door + 3.2) if (a, b) == ((x0, zb), (x1, zb)) else None)
+    # roofs: the nave barrel along z, the transept barrel along x, and the dome over the crossing on a glass drum
+    apex = barrel(x0, x1, zf, zb, sp, sharp=0.55, along='z', gables=(False, True))
+    # the gable against the house: stone, filling the barrel's profile
+    P, _ = pointed(x0, x1, sp, n=10, sharp=0.55)
+    ngon('ashlar', [(u, v, zf + 0.02) for u, v in P])
+    barrel(tz0, tz1, tx0, tx1, sp, sharp=0.55, along='x')
+    drum_r = 4.2
+    cyl('glass_cons', (0, apex - 1.4, zc), 2.4, drum_r, seg=24, cap=False)
+    for k in range(16):
+        a = k * math.pi / 8
+        tube('iron', [(math.cos(a) * drum_r, apex - 1.4, zc + math.sin(a) * drum_r), (math.cos(a) * drum_r, apex + 1.0, zc + math.sin(a) * drum_r)], 0.04, 4)
+    dome(0, zc, apex + 1.0, drum_r, 4.4)
+    # a pinnacle on each corner of the cross
+    for (x, z) in ((x0, zb), (x1, zb), (tx0, tz0), (tx0, tz1), (tx1, tz0), (tx1, tz1)):
+        wbox('ashlar', x - 0.3, x + 0.3, -0.1, sp + 0.3, z - 0.3, z + 0.3)
+        K.pinnacle(x, sp + 0.3, z, h=1.8, r=0.22)
+    # inside: the fountain at the crossing, palms, ferns, wicker chairs, lanterns hung from the ribs
+    marble_fountain(0, zc)
+    for (x, z, h) in ((-6.5, -15.8, 4.2), (6.5, -15.8, 4.2), (-6.8, -26.0, 5.4), (6.8, -26.0, 5.4), (-11.8, -18.2, 4.6),
+                      (-11.8, -22.8, 4.6), (11.8, -18.2, 4.6), (11.8, -22.8, 4.6), (-4.6, -24.8, 3.6), (4.6, -24.8, 3.6)):
+        K.palm(x, z, h)
+    for (x, z, s) in ((-8.2, -16.6, 1.2), (8.2, -16.6, 1.2), (-8.2, -25.0, 1.3), (8.2, -25.0, 1.3), (-13.0, -20.5, 1.4),
+                      (13.0, -20.5, 1.4), (-3.6, -20.5, 0.9), (3.6, -20.5, 0.9), (-6.0, -20.5, 1.1), (6.0, -20.5, 1.1)):
+        K.fern(x, z, s)
+    for (x, z, rot) in ((-5.0, -16.8, 0.4), (-3.8, -17.6, -0.6), (5.0, -16.8, -0.4), (3.8, -17.6, 0.6)):
+        K.chair(x, z, rot, mat='velvet_green')
+    K.table(-4.4, -16.6, 0.8, 0.8, h=0.7, mat='trim_cream')
+    K.table(4.4, -16.6, 0.8, 0.8, h=0.7, mat='trim_cream')
+    for (x, z) in ((0, -15.6), (0, -25.6), (-10.5, zc), (10.5, zc), (-5, -22.8), (5, -18.2)):
+        hanging_lantern(x, sp + 2.4, z)
+    INTERACT.append(dict(id='view', label='The view over the city', pos=[0, 1.6, zb + 1.4], r=2.5))
+
+
+def raised_conservatory():
+    """The domed conservatory as the photographs show it: carried up over an open carriage arch."""
+    import hopkins_house as HH
+    TRIM = HH.TRIM
+    x0, x1, z0, z1 = HH.CONS
+    xc, zc = (x0 + x1) / 2, (z0 + z1) / 2
+    hx, hz = (x1 - x0) / 2, (z1 - z0) / 2
+    dy = 4.6                                   # the conservatory floor, over the arch
+    # the arch: corner piers and pointed openings on the three open sides, a vault, and a balustrade on top
+    for (x, z) in ((x1 - 0.4, z0 + 0.4), (x1 - 0.4, z1 - 0.4), (x0 + 0.45, z0 + 0.4), (x0 + 0.45, z1 - 0.4)):
+        wbox('ashlar', x - 0.45, x + 0.45, -0.1, dy, z - 0.45, z + 0.45)
+        wbox(TRIM, x - 0.52, x + 0.52, -0.1, 0.5, z - 0.52, z + 0.52)
+        wbox(TRIM, x - 0.5, x + 0.5, 2.6, 2.8, z - 0.5, z + 0.5)
+        K.collide(x - 0.45, 0, z - 0.45, x + 0.45, dy, z + 0.45)
+    HH.arch(frame((xc, 0, z1), (1, 0, 0), (0, 0, 1)), hx - 0.9, 2.8, dy, k=0.6)
+    HH.arch(frame((xc, 0, z0), (-1, 0, 0), (0, 0, -1)), hx - 0.9, 2.8, dy, k=0.6)
+    HH.arch(frame((x1, 0, zc), (0, 0, -1), (1, 0, 0)), hz - 0.85, 2.8, dy, k=0.6)
+    wbox('stone', x0, x1, dy - 0.35, dy, z0, z1)                 # the vault's soffit
+    wbox('flags', x0, x1, -0.1, 0.02, z0, z1)
+    hanging_lantern(xc, dy - 0.35, zc, drop=0.4)
+    # the conservatory itself, as before but standing on the arch
+    y0 = dy + 0.4
+    sp = K.H + dy
+    wbox('ashlar', x0, x1 + 0.15, dy, y0, z0 - 0.15, z1 + 0.15)
+    wbox(TRIM, x0, x1 + 0.2, y0, y0 + 0.1, z0 - 0.2, z1 + 0.2)
+    for (a, b) in (((x0, z1), (x1, z1)), ((x1, z1), (x1, z0)), ((x1, z0), (x0, z0))):
+        A, B = Vector((a[0], 0, a[1])), Vector((b[0], 0, b[1]))
+        r = (B - A).normalized(); n = Vector((-r.z, 0, r.x)); L = (B - A).length
+        F = frame(A, r, n)
+        lbox(F, 'glass_cons', 0, L, y0 + 0.1, sp, -0.02, 0.02)
+        for k in range(1, 6):
+            u = k * L / 6
+            lbox(F, 'iron', u - 0.04, u + 0.04, y0 + 0.1, sp, -0.05, 0.05)
+            if k in (2, 4): lbox(F, 'glass_lit0', u - L / 6 + 0.08, u - 0.08, y0 + 0.5, sp - 0.6, 0.03, 0.04)
+        lbox(F, 'iron', 0, L, y0 + 2.5, y0 + 2.58, -0.05, 0.05)
+        lbox(F, TRIM, -0.1, L + 0.1, sp - 0.1, sp + 0.25, 0, 0.3)
+    for (x, z) in ((x1, z0), (x1, z1), (x0 + 0.2, z0), (x0 + 0.2, z1)):
+        wbox('ashlar', x - 0.25, x + 0.25, y0, sp + 0.25, z - 0.25, z + 0.25)
+        K.pinnacle(x, sp + 0.25, z, h=1.6, r=0.2)
+    P = HH.pointed(hz, sp, 0.55, 5)
+    for (u0, v0), (u1, v1) in zip(P, P[1:]):
+        HH.poly('glass_cons', [(x0, v0, zc + u0), (x1, v0, zc + u0), (x1, v1, zc + u1), (x0, v1, zc + u1)])
+    HH.poly('glass_cons', [(x1, v, zc + u) for u, v in P])
+    tube('iron', [(x1 + 0.05, v, zc + u) for u, v in P], 0.08, 4)
+    Q = HH.pointed(hx, sp, 0.55, 5)
+    for (u0, v0), (u1, v1) in zip(Q, Q[1:]):
+        HH.poly('glass_cons', [(xc + u0, v0, z0), (xc + u0, v0, z1), (xc + u1, v1, z1), (xc + u1, v1, z0)])
+    for zz, s in ((z0, -1), (z1, 1)):
+        HH.poly('glass_cons', [(xc + u, v, zz) for u, v in Q])
+        tube('iron', [(xc + u, v, zz + s * 0.05) for u, v in Q], 0.08, 4)
+    top = max(v for _, v in P + Q)
+    dome(xc, zc, top - 0.6, 2.4, 3.4)
+    K.collide(x0, dy, z0 - 0.3, x1 + 0.3, sp, z1 + 0.3)
+
+
+def rear_verandas():
+    """Two storeys of arcaded veranda across the back, either side of the palm house, as in the rear photographs."""
+    zw = -14.225
+    d = 2.6                   # (clear of the palm house's transept)
+    UF = 6.0
+    for (xa, xb) in ((9.8, 15.2), (-15.2, -9.8)):
+        zo = zw - d
+        xs = list(np.linspace(xa, xb, 3))
+        wbox('flags', min(xa, xb) - 0.3, max(xa, xb) + 0.3, -0.1, 0.05, zo - 0.3, zw)
+        for x in xs:
+            clustered_post(x, zo, 0.05, UF - 0.4, r=0.13, mat='trim_stone', band='trim_stone')
+            clustered_post(x, zo, UF, UF + 3.6, r=0.11, mat='trim_stone', band='trim_stone')
+        F = frame((xs[0], 0, zo), ((xs[-1] - xs[0]) / abs(xs[-1] - xs[0]), 0, 0), (0, 0, -1))
+        L = abs(xs[1] - xs[0])
+        for k in range(2):
+            G = F @ Matrix.Translation((k * L, 0, 0))
+            arch(G, 0.18, L - 0.18, 3.0, UF - 0.4, depth=0.3, mat='trim_stone', spandrel='ashlar')
+            arch(G, 0.18, L - 0.18, UF + 1.9, UF + 3.6, depth=0.26, mat='trim_stone', spandrel='ashlar')
+            balustrade_panel(G, 0.15, L - 0.15, UF, 1.0, mat='trim_stone')
+        # the upper floor and the roof
+        wbox('ashlar', min(xa, xb) - 0.2, max(xa, xb) + 0.2, UF - 0.4, UF, zo - 0.25, zw)
+        wbox('flags', min(xa, xb) - 0.2, max(xa, xb) + 0.2, UF, UF + 0.05, zo - 0.2, zw)
+        bm = bm_for('slate')
+        y = UF + 3.6
+        for q in ([(min(xa, xb) - 0.4, y, zo - 0.4), (max(xa, xb) + 0.4, y, zo - 0.4), (max(xa, xb) + 0.4, y + 1.3, zw), (min(xa, xb) - 0.4, y + 1.3, zw)],):
+            bm.faces.new([bm.verts.new(p) for p in q])
+        wbox('trim_stone', min(xa, xb) - 0.45, max(xa, xb) + 0.45, y - 0.25, y, zo - 0.45, zo - 0.2)
+        for x in ((xs[0] + xs[1]) / 2, (xs[1] + xs[2]) / 2):
+            hanging_lantern(x, UF - 0.4, zo + d / 2, drop=0.7)
+
+
+def terrace_balustrade(x0, x1, z, y, gaps=(), pier=5.0, lamps=()):
+    """A stone balustrade along x at z on ground height y, piers with urns every `pier` metres, open at gaps."""
+    xs = np.arange(x0, x1 + 0.01, pier)
+    for a, b in zip(xs, xs[1:]):
+        if any(a < g1 and b > g0 for g0, g1 in gaps): continue
+        wbox('trim_stone', a, b, y, y + 0.18, z - 0.25, z + 0.25)
+        wbox('trim_stone', a, b, y + 0.92, y + 1.05, z - 0.22, z + 0.22)
+        for xx in np.arange(a + 0.25, b - 0.1, 0.32):
+            cyl('trim_stone', (xx, y + 0.18, z), 0.74, 0.07, 0.05, seg=6)
+        K.collide(a, y, z - 0.25, b, y + 1.05, z + 0.25)
+    for x in xs:
+        if any(g0 < x < g1 for g0, g1 in gaps): continue
+        wbox('ashlar', x - 0.3, x + 0.3, y, y + 1.25, z - 0.3, z + 0.3)
+        wbox('trim_stone', x - 0.36, x + 0.36, y + 1.25, y + 1.37, z - 0.36, z + 0.36)
+        if any(abs(x - l) < 0.1 for l in lamps):
+            p = gas_lamp_at(x, z, y + 1.37)
+        else:
+            K.urn(x, y + 1.37, z, 0.8)
+
+
+def gas_lamp_at(x, z, y, h=3.0):
+    from setkit import gas_lamp
+    p = gas_lamp(x, z, h=h, y=y)
+    K.LAMPS.append(list(p))
+    return p
+
+
+def gazebo(x, z, y):
+    """A domed garden pavilion: eight slender columns, a ring beam, a ribbed slate dome and a finial."""
+    r = 2.4
+    cyl('flags', (x, y - 0.1, z), 0.35, r + 0.6, seg=16)
+    for k in range(8):
+        a = k * math.pi / 4
+        px, pz = x + r * math.cos(a), z + r * math.sin(a)
+        cyl('trim_stone', (px, y + 0.25, pz), 3.0, 0.11, 0.09, seg=8)
+        K.collide(px - 0.12, y, pz - 0.12, px + 0.12, y + 3.2, pz + 0.12)
+        if k % 2:
+            nxt = ((k + 1) % 8) * math.pi / 4
+            tube('iron', [(px, y + 1.0, pz), (x + r * math.cos(nxt), y + 1.0, z + r * math.sin(nxt))], 0.03, 4)
+    cyl('trim_stone', (x, y + 3.25, z), 0.4, r + 0.2, seg=16)
+    prof = [((r + 0.1) * math.cos(t * math.pi / 2), y + 3.65 + 2.2 * math.sin(t * math.pi / 2)) for t in np.linspace(0, 1, 7)]
+    for (r0, ya), (r1, yb) in zip(prof, prof[1:]):
+        cyl('slate', (x, ya, z), yb - ya, max(0.05, r0), max(0.05, r1), seg=16, cap=False)
+    for k in range(8):
+        a = k * math.pi / 4
+        tube('trim_stone', [(x + math.cos(a) * (rr + 0.03), yy, z + math.sin(a) * (rr + 0.03)) for rr, yy in prof], 0.05, 4)
+    tube('iron', [(x, y + 5.8, z), (x, y + 7.0, z)], 0.035, 4)
+    sphere('gilt_frame', (x, y + 6.2, z), 0.14, 8)
+    hanging_lantern(x, y + 3.25, z, drop=0.6)
+    wbox('walnut_panel', x - 1.0, x + 1.0, y + 0.65, y + 0.72, z - 0.25, z + 0.25)
+
+
+def terraces():
+    """The gardens behind the house stepping down the hill toward the bay: three terraces held by granite walls
+    with balustrades, a grand stair down the middle, hedged parterres, cypresses and two domed pavilions."""
+    levels = [(0.0, -17.5, -31.0), (-1.8, -31.0, -40.0), (-3.6, -40.0, -50.0)]   # (y, z near the house, z far)
+    for (y, za, zb) in levels:
+        wbox('grass', -42, 42, y - 0.25, y - 0.05, zb, za)
+    stair = (-4.0, 4.0)
+    for (y, za, zb), (y2, _, _) in zip(levels, levels[1:]):
+        # the retaining wall at zb, from the lower terrace up to this one, and its balustrade
+        wbox('granite', -42, 42, y2 - 0.3, y, zb - 0.35, zb + 0.35)
+        wbox('trim_stone', -42.2, 42.2, y - 0.02, y + 0.06, zb - 0.45, zb + 0.45)
+        terrace_balustrade(-40, 40, zb, y, gaps=[stair], lamps=(-40.0, -5.0, 5.0, 40.0))
+        # the stair: from this terrace down to the next
+        steps = int(round((y - y2) / 0.2))
+        # solid steps, each a riser lower, running out onto the terrace below
+        for k in range(steps):
+            ytop = y - (k + 1) * 0.2
+            wbox('granite', stair[0], stair[1], y2 - 0.3, ytop, zb - 0.35 - (k + 1) * 0.36, zb - 0.35 - k * 0.36)
+        run = steps * 0.36
+        for s in stair:  # cheek walls outside the treads, with urns at the foot
+            sg = 1 if s > 0 else -1
+            c0, c1 = sorted((s, s + sg * 0.55))
+            wbox('ashlar', c0, c1, y2 - 0.3, y + 0.9, zb - 0.35 - run, zb + 0.35)
+            K.collide(c0, y2, zb - 0.35 - run, c1, y + 0.9, zb + 0.35)
+            K.urn((c0 + c1) / 2, y + 0.9, zb - 0.35 - run + 0.3, 0.9)
+    # the last wall, down to where the hill falls away
+    yl, _, zl = levels[-1]
+    wbox('granite', -42, 42, yl - 4.0, yl, zl - 0.35, zl + 0.35)
+    terrace_balustrade(-40, 40, zl, yl, lamps=(-40.0, 0.0, 40.0))
+    for x in (-42, 42):  # the ends
+        wbox('granite', x - 0.35, x + 0.35, levels[-1][0] - 4.0, 0.0, zl, -17.5)
+    # parterres: clipped box in squares with flowers, on the lower two terraces, either side of the walk
+    for li, (y, za, zb) in enumerate(levels[1:]):
+        for sx in (-1, 1):
+            for cx in ([sx * 11, sx * 21] if li == 0 else [sx * 11, sx * 21, sx * 31]):   # (the pavilions stand at +-31 above)
+                cz = (za + zb) / 2
+                for (a0, a1, b0, b1) in ((cx - 4, cx + 4, cz - 3, cz - 2.6), (cx - 4, cx + 4, cz + 2.6, cz + 3),
+                                         (cx - 4, cx - 3.6, cz - 3, cz + 3), (cx + 3.6, cx + 4, cz - 3, cz + 3)):
+                    wbox('hedge', a0, a1, y - 0.05, y + 0.6, b0, b1)
+                    K.collide(a0, y, b0, a1, y + 0.6, b1)
+                wbox('flowers', cx - 3.4, cx + 3.4, y - 0.05, y + 0.22, cz - 2.4, cz + 2.4)
+        for x in range(-38, 39, 6):
+            if abs(x) < 6: continue
+            from setkit import cyl as _c
+            _c('cypress', (x, y, zb + 0.9), 5.0, 0.6, 0.05, seg=10)
+    # the pavilions, at either end of the middle terrace, and a small fountain on the lowest
+    gazebo(-31.0, -35.5, -1.8)
+    gazebo(31.0, -35.5, -1.8)
+    y3 = levels[2][0]
+    cyl('marble_white', (0, y3, -45.0), 0.5, 2.4, 2.5, seg=24)
+    cyl('water', (0, y3 + 0.42, -45.0), 0.03, 2.2, seg=24)
+    cyl('marble_white', (0, y3 + 0.45, -45.0), 1.4, 0.25, 0.18, seg=12)
+    sphere('marble_white', (0, y3 + 2.0, -45.0), 0.3, 10)
+    K.collide(-2.4, y3, -47.4, 2.4, y3 + 0.5, -42.6)
+    INTERACT.append(dict(id='terrace', label='The view from the terrace', pos=[0, y3 + 1.2, -48.6], r=2.5))
