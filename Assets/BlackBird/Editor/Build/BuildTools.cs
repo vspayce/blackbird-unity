@@ -2,6 +2,7 @@
 // the repo's gh-pages branch (GitHub Pages) so it can be opened on a phone.
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
 using UnityEngine;
@@ -35,7 +36,7 @@ namespace BlackBird.EditorTools
             PlayerSettings.WebGL.decompressionFallback = true;
             PlayerSettings.WebGL.dataCaching = true;
             PlayerSettings.WebGL.exceptionSupport = WebGLExceptionSupport.ExplicitlyThrownExceptionsOnly;
-            PlayerSettings.WebGL.nameFilesAsHashes = false;
+            PlayerSettings.WebGL.nameFilesAsHashes = true;    // a new build never mixes with a cached old one
             PlayerSettings.WebGL.template = "PROJECT:BlackBird";   // full-window, landscape, our loading screen
             // optimised code rather than the quick-to-build default
             EditorUserBuildSettings.SetPlatformSettings("WebGL", "CodeOptimization", "RuntimeSpeed");
@@ -46,8 +47,11 @@ namespace BlackBird.EditorTools
         public static void BuildWebGL()
         {
             ConfigurePlayer();
-            var scenes = new[] { "Assets/BlackBird/Scenes/BurrittAlley.unity" };
-            if (!File.Exists(Path.Combine(ProjectRoot, scenes[0]))) { Debug.LogError("[Black Bird] Build the scene first (Black Bird ▸ Build Burritt Alley)."); return; }
+            // every place the splash page offers, in the order SceneSwitch numbers them
+            var scenes = new[] { "BurrittAlley", "HopkinsNight", "HopkinsDay" }
+                .Select(n => $"Assets/BlackBird/Scenes/{n}.unity").ToArray();
+            var missing = scenes.Where(p => !File.Exists(Path.Combine(ProjectRoot, p))).ToArray();
+            if (missing.Length > 0) { Debug.LogError("[Black Bird] Build these scenes first: " + string.Join(", ", missing)); return; }
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = scenes, locationPathName = WebGLDir, target = BuildTarget.WebGL, options = BuildOptions.None,

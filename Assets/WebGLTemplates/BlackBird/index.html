@@ -23,6 +23,25 @@
     #bar { width: min(60vw, 420px); height: 2px; background: rgba(239,230,209,0.15); }
     #fill { height: 100%; width: 0; background: var(--gold); box-shadow: 0 0 10px var(--gold); transition: width 0.2s; }
     #msg { margin-top: 14px; font-size: 14px; opacity: 0.6; min-height: 1.2em; }
+    /* the splash: pick a place */
+    #splash { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: clamp(14px, 3vh, 28px); padding: 16px; box-sizing: border-box; color: var(--ink); font-family: 'IM Fell English', Georgia, serif; text-align: center;
+      background: radial-gradient(ellipse at 50% 30%, rgba(255,180,100,0.12), transparent 45%), linear-gradient(#141b24, #0b0f14); transition: opacity 0.6s; }
+    #splash h1 { font-family: 'IM Fell English SC', Georgia, serif; font-weight: 400; font-size: clamp(30px, 6vw, 64px); margin: 0; letter-spacing: 0.04em; }
+    #splash .sub { margin: -6px 0 0; opacity: 0.65; font-style: italic; font-size: clamp(14px, 2.2vw, 19px); }
+    #places { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(10px, 2vw, 22px); width: min(100%, 1100px); }
+    .place { all: unset; cursor: pointer; display: flex; flex-direction: column; border: 1px solid rgba(201,164,106,0.35); background: rgba(0,0,0,0.25);
+      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; }
+    .place:hover, .place:focus-visible { transform: translateY(-3px); border-color: var(--gold); box-shadow: 0 0 24px rgba(201,164,106,0.25); }
+    .place img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; filter: sepia(0.15); background: #0b0f14; }
+    .place b { font-family: 'IM Fell English SC', Georgia, serif; font-weight: 400; font-size: clamp(16px, 2.2vw, 24px); padding: 10px 10px 2px; }
+    .place span { font-size: clamp(12px, 1.5vw, 15px); opacity: 0.6; font-style: italic; padding: 0 10px 12px; }
+    #splash .keys { font-size: 13px; opacity: 0.45; }
+    #menu { position: fixed; top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); z-index: 4; display: none;
+      font-family: 'IM Fell English SC', Georgia, serif; color: var(--ink); background: rgba(11,15,20,0.55); border: 1px solid rgba(201,164,106,0.4);
+      padding: 6px 12px; font-size: 15px; text-decoration: none; letter-spacing: 0.05em; }
+    #menu:hover { border-color: var(--gold); }
+    @media (max-height: 500px) { #places { width: min(100%, 760px); } .place span { display: none; } #splash .keys { display: none; } }
     #rotate { display: none; position: fixed; inset: 0; background: var(--bg); color: var(--ink); z-index: 10;
       font-family: 'IM Fell English', Georgia, serif; font-size: 22px; align-items: center; justify-content: center; text-align: center; padding: 16px; }
     @media (orientation: portrait) and (max-width: 900px) { #rotate { display: flex; } }
@@ -30,9 +49,20 @@
 </head>
 <body>
   <canvas id="unity-canvas" tabindex="-1"></canvas>
-  <div id="loader">
+  <div id="splash">
     <h1>The Black Bird</h1>
-    <p>San Francisco, 1895 · Burritt Alley</p>
+    <p class="sub">San Francisco, 1895</p>
+    <div id="places">
+      <button class="place" data-scene="alley"><img src="img/alley.jpg" alt=""><b>Burritt Alley</b><span>Chapter I · where Miles Archer fell</span></button>
+      <button class="place" data-scene="hopkins"><img src="img/hopkins-night.jpg" alt=""><b>The Hopkins House</b><span>By night · gaslight and fog</span></button>
+      <button class="place" data-scene="hopkins-day"><img src="img/hopkins-day.jpg" alt=""><b>The Hopkins House</b><span>By day · Muybridge's city, 1878</span></button>
+    </div>
+    <div class="keys">In the game: 1 · 2 · 3 change place, Tab turns the house from night to day</div>
+  </div>
+  <a id="menu" href="./">Places</a>
+  <div id="loader" style="display:none">
+    <h1>The Black Bird</h1>
+    <p id="where">San Francisco, 1895</p>
     <div id="bar"><div id="fill"></div></div>
     <div id="msg">Lighting the gas lamps…</div>
   </div>
@@ -78,14 +108,25 @@
     window.addEventListener('unhandledrejection', e => {
       if (e.reason && (e.reason.name === 'NotAllowedError' || /pointer ?lock/i.test(String(e.reason)))) e.preventDefault();
     });
-    const script = document.createElement('script');
-    script.src = "Build/{{{ LOADER_FILENAME }}}";
-    script.onload = () => {
-      createUnityInstance(canvas, config, p => { fill.style.width = (100 * p) + '%'; if (p > 0.9) msg.textContent = 'The fog is coming in…'; })
-        .then(() => { loader.style.opacity = 0; setTimeout(() => loader.remove(), 900); canvas.focus(); })
-        .catch(e => { msg.textContent = 'Could not start: ' + e; });
-    };
-    document.body.appendChild(script);
+    // Pick a place on the splash (or come straight in with ?scene=…); the game reads the scene from the URL.
+    const names = { alley: 'Burritt Alley', hopkins: 'The Hopkins House, by night', 'hopkins-day': 'The Hopkins House, by day' };
+    const splash = document.querySelector('#splash');
+    function start(scene) {
+      const u = new URL(location.href); u.searchParams.set('scene', scene); history.replaceState(null, '', u);
+      document.querySelector('#where').textContent = 'San Francisco, 1895 · ' + (names[scene] || '');
+      loader.style.display = 'flex'; splash.style.opacity = 0; setTimeout(() => splash.remove(), 600);
+      const script = document.createElement('script');
+      script.src = "Build/{{{ LOADER_FILENAME }}}";
+      script.onload = () => {
+        createUnityInstance(canvas, config, p => { fill.style.width = (100 * p) + '%'; if (p > 0.9) msg.textContent = 'The fog is coming in…'; })
+          .then(() => { loader.style.opacity = 0; setTimeout(() => loader.remove(), 900); document.querySelector('#menu').style.display = 'block'; canvas.focus(); })
+          .catch(e => { msg.textContent = 'Could not start: ' + e; });
+      };
+      document.body.appendChild(script);
+    }
+    document.querySelectorAll('.place').forEach(b => b.addEventListener('click', () => start(b.dataset.scene)));
+    const asked = new URLSearchParams(location.search).get('scene');
+    if (asked && names[asked]) start(asked);
   </script>
 </body>
 </html>
