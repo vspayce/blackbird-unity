@@ -218,7 +218,7 @@ namespace BlackBird.EditorTools
             systems.AddComponent<SceneSwitch>();
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
-            if (day) { DayBackdrop(); Daylight(data); } else City();
+            if (day) { DayBackdrop(data); Daylight(data); } else City();
 
             // ---- probes ----
             Physics.SyncTransforms();
@@ -365,7 +365,7 @@ namespace BlackBird.EditorTools
             city.moonMaterial = SaveMat(moon, "Moon");
         }
 
-        static void DayBackdrop()
+        static void DayBackdrop(Dictionary<string, object> data)
         {
             var go = new GameObject("Muybridge1878");
             var pano = go.AddComponent<Panorama>();
@@ -424,9 +424,9 @@ namespace BlackBird.EditorTools
             // the hall's height, and the grounds (dropped onto whatever is there)
             var h = L(data["hall"]).Select(F).ToArray();
             var hb = Web.Box(h[0], 0, h[2], h[1], 0, h[3]);
+            float hh = data.TryGetValue("hall_h", out var hho) ? F(hho) : 14f;
             for (float x = hb.min.x + 1; x <= hb.max.x - 1; x += 2.5f)
             for (float z = hb.min.z + 1; z <= hb.max.z - 1; z += 2.5f)
-            float hh = data.TryGetValue("hall_h", out var hho) ? F(hho) : 14f;
             for (float y = 3.5f; y <= hh - 2f; y += 2.5f) pts.Add(new Vector3(x, y, z));
             for (float x = -60; x <= 60; x += 6)
             for (float z = -60; z <= 60; z += 6)
