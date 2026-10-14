@@ -185,7 +185,7 @@ namespace BlackBird.EditorTools
             var cam = camGo.AddComponent<Camera>();
             cam.clearFlags = day ? CameraClearFlags.Skybox : CameraClearFlags.SolidColor;
             cam.backgroundColor = SceneBuilder.Hex("#0a1018");
-            cam.fieldOfView = 55; cam.nearClipPlane = 0.08f; cam.farClipPlane = 5000f;
+            cam.fieldOfView = 55; cam.nearClipPlane = 0.12f; cam.farClipPlane = 5000f;   // the city is far off; keep depth precision for the house
             camGo.AddComponent<AudioListener>();
             var cd = camGo.AddComponent<UniversalAdditionalCameraData>();
             cd.renderPostProcessing = true; cd.antialiasing = AntialiasingMode.FastApproximateAntialiasing;

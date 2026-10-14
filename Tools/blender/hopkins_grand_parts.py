@@ -123,6 +123,7 @@ def patch():
         return R
     K.rooms = rooms
     K.build_hall = grand_hall
+    K.stair_runner = lambda: None        # the grand stair lays its own runner; two would fight
 
 
 # ---- pieces ----------------------------------------------------------------------------------------------
@@ -297,18 +298,24 @@ def grand_hall(R):
     # walking is unchanged), now in marble with a red runner and carved balustrades ---
     n_main, n_side = 15, 8
     rise = (gy / 2) / n_main
+    # each step is one riser's height (not a block down to the floor, whose buried faces spoil the bake), and the
+    # flight is closed at each side by a stepped marble cheek
     for k in range(n_main):
-        wbox('marble_white', -2.4, 2.4, 0, (k + 1) * rise, zf - (k + 1) * 0.3, zf - k * 0.3)
-        wbox('velvet_red', -1.5, 1.5, (k + 1) * rise, (k + 1) * rise + 0.008, zf - (k + 1) * 0.3, zf - k * 0.3 + 0.01)
-        tube('brass', [(-1.5, k * rise + rise + 0.02, zf - k * 0.3 - 0.02), (1.5, k * rise + rise + 0.02, zf - k * 0.3 - 0.02)], 0.008, 5)
+        za, zb_ = zf - (k + 1) * 0.3, zf - k * 0.3
+        wbox('marble_white', -2.4, 2.4, k * rise - 0.01, (k + 1) * rise, za, zb_)
+        wbox('velvet_red', -1.5, 1.5, (k + 1) * rise, (k + 1) * rise + 0.02, za, zb_ + 0.012)
+        wbox('velvet_red', -1.5, 1.5, k * rise, (k + 1) * rise, zb_, zb_ + 0.012)       # up the riser
+        for sx in (-2.4, 2.4) if k else ():
+            ngon('marble_white', [(sx, 0, za), (sx, 0, zb_), (sx, k * rise, zb_), (sx, k * rise, za)])
+        tube('brass', [(-1.5, k * rise + rise + 0.03, zf - k * 0.3 - 0.03), (1.5, k * rise + rise + 0.03, zf - k * 0.3 - 0.03)], 0.009, 5)
     wbox('marble_white', -xl, xl, gy / 2 - 0.3, gy / 2, zb, zl)
-    wbox('velvet_red', -2.6, 2.6, gy / 2, gy / 2 + 0.008, zb + 0.2, zl - 0.1)
+    wbox('velvet_red', -2.6, 2.6, gy / 2, gy / 2 + 0.02, zb + 0.2, zl - 0.1)
     for s_ in (-1, 1):
         for k in range(n_side):
             xa, xb = s_ * (xl + k * 0.3), s_ * (xl + (k + 1) * 0.3)
             ytop = gy / 2 + (k + 1) * (gy / 2) / n_side
             wbox('marble_white', min(xa, xb), max(xa, xb), ytop - 0.45, ytop, zb, zl)
-            wbox('velvet_red', min(xa, xb), max(xa, xb), ytop, ytop + 0.008, zb + 0.25, zl - 0.25)
+            wbox('velvet_red', min(xa, xb), max(xa, xb), ytop, ytop + 0.02, zb + 0.25, zl - 0.25)
         wbox('carved_walnut', min(s_ * xs, s_ * 7), max(s_ * xs, s_ * 7), gy - 0.4, gy, zb, zl)
         wbox('parquet', min(s_ * xs, s_ * 7), max(s_ * xs, s_ * 7), gy, gy + 0.02, zb, zl)
         # the main flight's carved balustrades, rising with it, and newels with bronze torchere figures
