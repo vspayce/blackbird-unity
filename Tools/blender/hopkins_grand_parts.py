@@ -1096,3 +1096,298 @@ def grand_fern(x, z, s=1.0, y=0.0):
 def rnd(a, b):
     v = math.sin(a * 12.9898 + b * 78.233) * 43758.5453
     return v - math.floor(v)
+
+
+# ---- the Grand Hall, enlarged (built after the house is warped; see hopkins_warp.py) -------------------------------
+#
+# 22 m across and 28 deep, the gallery at 7.2 m, the cove springing at 14.4 and the crown at 16.8. An imperial stair:
+# one broad flight climbs from under a gallery bridge to a landing at the back, and two return flights climb forward
+# again on either side to the bridge, which crosses the hall at gallery level from side gallery to side gallery.
+
+HALL2 = dict(X0=-11.0, X1=11.0, Z0=-6.0, Z1=22.0, GY=7.2, TOP=14.4, HH=16.8)
+
+
+def arcade_span(F, L, v_spring, v_top, depth, sharp=0.62):
+    """A pointed arch across a bay of length L, sprung low enough that its apex clears v_top."""
+    _, apex = pointed(0.22, L - 0.22, 0.0, sharp=sharp)
+    arch(F, 0.22, L - 0.22, min(v_spring, v_top - 0.25 - apex), v_top, depth=depth, sharp=sharp)
+
+
+def hang_row(F, L, cuts, v, sizes, gap=0.35, margin=0.7):
+    """Hang pictures along a wall frame F (u along the wall) at height v, frame to frame, skipping the cut spans."""
+    u = margin; k = 0; placed = []
+    while True:
+        w, h = sizes[k % len(sizes)]
+        if u + w > L - margin: break
+        if any(u < c1 and u + w > c0 for c0, c1 in cuts):
+            u = max(c1 for c0, c1 in cuts if u < c1 and u + w > c0) + gap; continue
+        placed.append((u + w / 2, w, h)); u += w + gap; k += 1
+    return placed
+
+
+def grand_hall2(HW):
+    P = HALL2
+    X0, X1, Z0, Z1, GY, TOP, HH = P['X0'], P['X1'], P['Z0'], P['Z1'], P['GY'], P['TOP'], P['HH']
+    EDGE, FRONT, BACK = 8.4, 19.4, -4.4                # the gallery's inner edges
+    R, TR, N = 0.2, 0.38, 18                            # riser, tread, risers to the landing
+    FOOT = 6.4                                          # the foot of the main flight (and the bridge's back edge)
+    ZL1 = FOOT - (N - 1) * TR                           # the landing's front edge
+    ZL0 = ZL1 - 3.4                                     # and its back edge
+    YL = N * R                                          # the landing: 3.6 m up
+    XM, XR0, XR1 = 3.0, 3.3, 6.1                        # main flight half-width; return flights from XR0 to XR1
+    BR0, BR1 = FOOT, FOOT + 2.4                         # the bridge
+    pic = [0]
+
+    # --- the main flight: one riser per step (nothing buried), stepped marble cheeks, closed behind ---
+    for k in range(N - 1):
+        za, zb_ = FOOT - (k + 1) * TR, FOOT - k * TR
+        wbox('marble_white', -XM, XM, k * R - 0.01, (k + 1) * R, za, zb_)
+        wbox('velvet_red', -2.0, 2.0, (k + 1) * R, (k + 1) * R + 0.02, za, zb_ + 0.012)
+        wbox('velvet_red', -2.0, 2.0, k * R, (k + 1) * R, zb_, zb_ + 0.012)
+        tube('brass', [(-2.0, (k + 1) * R + 0.03, zb_ - 0.03), (2.0, (k + 1) * R + 0.03, zb_ - 0.03)], 0.009, 5)
+        if k:
+            for sx in (-XM, XM):
+                ngon('marble_white', [(sx, 0, za), (sx, 0, zb_), (sx, k * R, zb_), (sx, k * R, za)])
+    ngon('marble_white', [(-XM, 0, ZL1), (XM, 0, ZL1), (XM, YL - 0.4, ZL1), (-XM, YL - 0.4, ZL1)])
+
+    # --- the landing: a marble slab on four columns, the runner across it ---
+    wbox('marble_white', -XR1, XR1, YL - 0.4, YL, ZL0, ZL1)
+    wbox('gilt_frame', -XR1 - 0.02, XR1 + 0.02, YL - 0.46, YL - 0.4, ZL0 - 0.02, ZL1 + 0.02)
+    wbox('velvet_red', -XR1 + 0.5, XR1 - 0.5, YL, YL + 0.02, ZL0 + 0.5, ZL1 - 0.1)
+    for x in (-XR1 + 0.5, XR1 - 0.5):
+        for z in (ZL0 + 0.5, ZL1 - 0.5):
+            cyl('marble_white', (x, 0, z), 0.4, 0.42, 0.36, seg=12)
+            cyl('marble_white', (x, 0.4, z), YL - 1.05, 0.26, 0.22, seg=16)
+            cyl('gilt_frame', (x, YL - 0.65, z), 0.25, 0.3, 0.38, seg=12)
+
+    # --- the return flights: slab steps climbing forward to the bridge, a carved stringer outside ---
+    for s in (-1, 1):
+        xa, xb = sorted((s * XR0, s * XR1))
+        for j in range(N - 1):
+            za, zb_ = ZL1 + j * TR, ZL1 + (j + 1) * TR
+            y = YL + (j + 1) * R
+            wbox('marble_white', xa, xb, y - 0.5, y, za, zb_)
+            wbox('velvet_red', xa + 0.45, xb - 0.45, y, y + 0.02, za - 0.012, zb_)
+        for sx in (xa, xb):   # the soffit's carved fascia, a sloping band on each side
+            quad('carved_walnut', (sx, YL - 0.5, ZL1), (sx, GY - 0.5, FOOT), (sx, GY - 0.2, FOOT), (sx, YL, ZL1))
+        bm_soffit = [(xa, YL - 0.5, ZL1), (xb, YL - 0.5, ZL1), (xb, GY - 0.5, FOOT), (xa, GY - 0.5, FOOT)]
+        quad('tracery_walnut', *bm_soffit)
+
+    # --- balustrades: up the main flight, both sides of each return flight, round the landing ---
+    run = (N - 1) * TR
+    for s in (-1, 1):
+        Fm = frame((s * XM, 0, FOOT), (0, 0, -1), (s, 0, 0))
+        for i in range(10):
+            ua, ub = run * i / 10, run * (i + 1) / 10
+            balustrade_panel(Fm, ua, ub, (YL - R) * (i + 0.5) / 10, 1.0)
+        tube('carved_walnut', [(s * XM, 1.05, FOOT), (s * XM, YL + 0.95, ZL1)], 0.07)
+        for x in (s * XR0, s * XR1):
+            Fr = frame((x, 0, ZL1), (0, 0, 1), (s, 0, 0))
+            for i in range(10):
+                ua, ub = run * i / 10, run * (i + 1) / 10
+                balustrade_panel(Fr, ua, ub, YL + (GY - YL - R) * (i + 0.5) / 10, 1.0)
+            tube('carved_walnut', [(x, YL + 1.05, ZL1), (x, GY + 0.95, FOOT)], 0.07)
+        Fs = frame((s * XR1, 0, ZL0), (0, 0, 1), (s, 0, 0))
+        balustrade_panel(Fs, 0.1, ZL1 - ZL0 - 0.1, YL, 1.05)
+    balustrade_panel(frame((-XR1, 0, ZL0), (1, 0, 0), (0, 0, -1)), 0.0, 2 * XR1, YL, 1.05)
+    # bronze torchere figures at the foot, either side, and lamps on the landing's newels
+    for s in (-1, 1):
+        torchere_figure(s * 3.75, FOOT + 0.6, math.pi if s < 0 else 0, h=2.4)
+
+    # --- the galleries: round all four walls, and the bridge across the hall ---
+    strips = [(X0, -EDGE, Z0, Z1), (EDGE, X1, Z0, Z1), (-EDGE, EDGE, FRONT, Z1), (-EDGE, EDGE, Z0, BACK),
+              (-EDGE, EDGE, BR0, BR1)]
+    for (a0, a1, b0, b1) in strips:
+        wbox('carved_walnut', a0, a1, GY - 0.5, GY, b0, b1)
+        wbox('parquet', a0, a1, GY, GY + 0.02, b0, b1)
+    wbox('gilt_frame', -EDGE, EDGE, GY - 0.56, GY - 0.5, BR0 - 0.02, BR1 + 0.02)
+    # the bridge's balustrades: across the front, and behind except where the return flights arrive
+    balustrade_panel(frame((-EDGE, 0, BR1), (1, 0, 0), (0, 0, 1)), 0.0, 2 * EDGE, GY, 1.05)
+    for a, b in ((-EDGE, -XR1), (-XR0, XR0), (XR1, EDGE)):
+        balustrade_panel(frame((a, 0, BR0), (1, 0, 0), (0, 0, -1)), 0.0, b - a, GY, 1.05)
+
+    # --- the arcade: clustered posts carrying pointed arches, on the ground and gallery storeys ---
+    side_z = [BACK, -0.4, 3.0, BR0, BR1, 12.4, 16.0, FRONT]
+    rows = [[(x, FRONT) for x in (-EDGE, -2.8, 2.8, EDGE)],
+            [(x, BACK) for x in (-EDGE, -XM, XM, EDGE)],
+            [(-EDGE, z) for z in side_z], [(EDGE, z) for z in side_z]]
+    centre = Vector((0, 0, 11.0))
+    posts = {p for row in rows for p in row}
+    for (x, z) in posts:
+        inward = (centre - Vector((x, 0, z))).normalized()
+        lit = z not in (BR0, BR1)
+        clustered_post(x, z, 0, GY - 0.5, r=0.2, lamp=3.3 if lit else None, facing=inward)
+        clustered_post(x, z, GY, TOP, r=0.17, lamp=10.4 if lit else None, facing=inward)
+    # the screen in front of the stair: posts under the bridge's front edge, arches between
+    screen = [(-EDGE, BR1), (-XM, BR1), (XM, BR1), (EDGE, BR1)]
+    for (x, z) in screen[1:3]:
+        clustered_post(x, z, 0, GY - 0.5, r=0.2, lamp=3.3, facing=(0, 0, 1))
+    for (x, z) in ((-6.6, BR0), (6.6, BR0)):
+        clustered_post(x, z, 0, GY - 0.5, r=0.2)
+    rows.append(screen)
+
+    def F_between(a, b):
+        A, B = Vector((a[0], 0, a[1])), Vector((b[0], 0, b[1]))
+        r = (B - A).normalized()
+        return frame(A, r, Vector((-r.z, 0, r.x))), (B - A).length
+
+    for ri, row in enumerate(rows):
+        for (a, b) in zip(row, row[1:]):
+            F, L = F_between(a, b)
+            arcade_span(F, L, 3.4, GY - 0.5, 0.36)
+            lbox(F, 'carved_walnut', 0, L, GY - 0.5, GY, -0.22, 0.22)
+            lbox(F, 'gilt_frame', 0, L, GY - 0.56, GY - 0.5, -0.23, 0.23)
+            if row is screen: continue
+            arcade_span(F, L, 11.3, TOP, 0.3)
+            lbox(F, 'carved_walnut', 0, L, TOP - 0.1, TOP + 0.25, -0.2, 0.2)
+            bridge_bay = ri >= 2 and {a[1], b[1]} == {BR0, BR1}
+            if not bridge_bay:
+                balustrade_panel(F, 0.22, L - 0.22, GY, 1.05)
+
+    # --- the organ, high on the back gallery under a great pointed arch ---
+    K.organ(frame((-3.6, GY, Z0 + T / 2 + 0.05), (1, 0, 0), (0, 0, 1)), 0, 7.2, 6.6)
+    Fo = frame((-4.8, 0, Z0 + T / 2 + 0.02), (1, 0, 0), (0, 0, 1))
+    pts, apex = pointed(0, 9.6, 9.0, n=16, sharp=0.55)
+    for (ua, va), (ub, vb) in zip(pts, pts[1:]):
+        c = Vector(((ua + ub) / 2, (va + vb) / 2, 0.15)); d = Vector((ub - ua, vb - va, 0))
+        M = Fo @ Matrix.Translation(c) @ Matrix.Rotation(math.atan2(d.y, d.x), 4, 'Z')
+        lbox(M, 'carved_walnut', -d.length / 2 - 0.02, d.length / 2 + 0.02, -0.2, 0.2, -0.15, 0.15)
+        lbox(M, 'gilt_frame', -d.length / 2, d.length / 2, -0.24, -0.2, -0.12, 0.12)
+    for u in (0.0, 9.6):
+        lbox(Fo, 'carved_walnut', u - 0.28, u + 0.28, GY, 9.0, 0, 0.38)
+        sphere('gilt_frame', Fo @ Vector((u, 9.15, 0.19)), 0.18, 10)
+    top_ = Fo @ Vector((4.8, apex + 0.2, 0.15))
+    K.pinnacle(top_.x, top_.y, top_.z, h=1.2, r=0.17)
+    INTERACT.append(dict(id='organ', label='The great organ', pos=[0.0, GY + 1.0, Z0 + 1.4], r=2.4))
+
+    # --- the walls: picture rail and painted frieze under the galleries; on the gallery storey tracery wainscot,
+    # stencilled paper and a frieze, cut round the doorways; and the pictures, salon-hung ---
+    DW, DHt = K.D / 2, K.DH * HW.Y_SCALE
+    up_doors = list(K.UPPER_DOORS_ORIG)
+    def door_cuts(axis, line, lo, hi):
+        """Spans along a wall (in its own u, from lo) that the upper-storey doorways take."""
+        cuts = []
+        for (ox, oz) in up_doors:
+            if axis == 'z' and abs(HW.fx(ox) - line) < 0.4:
+                a, b = HW.fz(oz - DW), HW.fz(oz + DW)
+            elif axis == 'x' and abs(HW.fz(oz) - line) < 0.4:
+                a, b = HW.fx(ox - DW), HW.fx(ox + DW)
+            else: continue
+            cuts.append((min(a, b) - lo - 0.18, max(a, b) - lo + 0.18))
+        return cuts
+    ground_doors = {'w': [(HW.fz(-2.9), HW.fz(-1.1)), (HW.fz(5.1), HW.fz(6.9))],
+                    'front': [(HW.fx(-1.2), HW.fx(1.2))]}
+    walls = [  # frame origin, direction, inward normal, length, axis, line, ground cuts
+        ((X0 + T / 2 + 0.01, Z1), (0, 0, -1), (1, 0, 0), Z1 - Z0, 'z', X0, 'w', Z1, -1),
+        ((X1 - T / 2 - 0.01, Z0), (0, 0, 1), (-1, 0, 0), Z1 - Z0, 'z', X1, 'w', Z0, 1),
+        ((X0, Z1 - T / 2 - 0.01), (1, 0, 0), (0, 0, -1), X1 - X0, 'x', Z1, 'front', X0, 1),
+        ((X1, Z0 + T / 2 + 0.01), (-1, 0, 0), (0, 0, 1), X1 - X0, 'x', Z0, 'back', X1, -1)]
+    for (o, r_, n_, L, axis, line, gkey, ustart, udir) in walls:
+        F = frame((o[0], 0, o[1]), r_, n_)
+        # the wall's own u runs from its origin; convert world spans along the wall into it
+        def to_u(a, b):
+            ua, ub = (a - ustart) * udir, (b - ustart) * udir
+            return (min(ua, ub), max(ua, ub))
+        ucuts = []
+        for (a, b) in door_cuts(axis, line, 0, 0):
+            ucuts.append(to_u(a, b))
+        # ground storey: rail and frieze under the gallery
+        lbox(F, 'carved_walnut', 0, L, 4.8, 4.95, 0, 0.08)
+        lbox(F, 'frieze_paint', 0, L, 4.95, 6.45, 0, 0.012)
+        lbox(F, 'carved_walnut', 0, L, 6.45, 6.7, 0, 0.14)
+        # gallery storey
+        u = 0.0
+        for (c0, c1) in sorted(ucuts) + [(L + 10, L + 10)]:
+            ue = min(L, c0)
+            if ue > u:
+                lbox(F, 'tracery_walnut', u, ue, GY, GY + 1.45, 0, 0.03)
+                lbox(F, 'hall_paper', u, ue, GY + 1.45, TOP - 1.2, 0, 0.012)
+            if c0 > L: break
+            lbox(F, 'hall_paper', c0, c1, GY + DHt + 0.2, TOP - 1.2, 0, 0.012)
+            for side_u in (c0, c1):
+                lbox(F, 'carved_walnut', side_u - 0.15, side_u + 0.15, GY, GY + DHt + 0.2, 0, 0.07)
+            pa, _ = pointed(c0, c1, GY + DHt, n=6)
+            for (ua, va), (ub, vb) in zip(pa, pa[1:]):
+                cc = Vector(((ua + ub) / 2, (va + vb) / 2, 0.03)); d = Vector((ub - ua, vb - va, 0))
+                lbox(F @ Matrix.Translation(cc) @ Matrix.Rotation(math.atan2(d.y, d.x), 4, 'Z'), 'carved_walnut',
+                     -d.length / 2, d.length / 2, -0.08, 0.08, -0.03, 0.03)
+            u = c1
+        lbox(F, 'carved_walnut', 0, L, TOP - 1.2, TOP - 1.06, 0, 0.1)
+        lbox(F, 'frieze_paint', 0, L, TOP - 1.06, TOP, 0, 0.012)
+        # pictures: two rows under the rail (not on the back wall, behind the stair), two rows up on the gallery
+        gcuts = [to_u(a - 0.35, b + 0.35) for (a, b) in ground_doors.get(gkey, [])]
+        if gkey != 'back':
+            for (uc, w, h) in hang_row(F, L, gcuts, 1.3, [(1.8, 1.3), (1.3, 1.0), (2.2, 1.6), (1.3, 1.0)]):
+                K.frame_painting(F, uc, 1.3, w, h, pic[0]); pic[0] += 1      # (v is the picture's bottom)
+                if w < 2.0:
+                    K.frame_painting(F, uc, 3.2, w * 0.8, h * 0.8, pic[0] + 7); pic[0] += 1
+        ocut = [to_u(-5.2, 5.2)] if gkey == 'back' else []
+        for (uc, w, h) in hang_row(F, L, ucuts + ocut, GY + 1.65, [(2.2, 1.6), (1.6, 1.2), (2.8, 2.0), (1.6, 1.2)]):
+            K.frame_painting(F, uc, GY + 1.65, w, h, pic[0]); pic[0] += 1
+            K.frame_painting(F, uc, GY + 1.65 + h + 0.45, w * 0.75, 0.9, pic[0] + 5); pic[0] += 1
+
+    # --- the ceiling: a cove from the arcade's top up to the crown, murals between gilt ribs, the laylight ---
+    inset = 2.4
+    n = 8
+    prof = [(inset * (1 - math.cos(t * math.pi / 2)), TOP + 0.25 + (HH - TOP - 0.25) * math.sin(t * math.pi / 2)) for t in [i / n for i in range(n + 1)]]
+    sides = [((X0, Z0), (X0, Z1), (1, 0)), ((X1, Z1), (X1, Z0), (-1, 0)), ((X0, Z1), (X1, Z1), (0, -1)), ((X1, Z0), (X0, Z0), (0, 1))]
+    mural = 0
+    for (a, b, inw) in sides:
+        A = Vector((a[0], 0, a[1])); B = Vector((b[0], 0, b[1])); I = Vector((inw[0], 0, inw[1]))
+        dir_ = (B - A).normalized(); L = (B - A).length
+        for (da, ya), (db, yb) in zip(prof, prof[1:]):
+            pa0 = A + I * da + dir_ * da; pa1 = B + I * da - dir_ * da
+            pb0 = A + I * db + dir_ * db; pb1 = B + I * db - dir_ * db
+            quad('cove_ground', (pa0.x, ya, pa0.z), (pa1.x, ya, pa1.z), (pb1.x, yb, pb1.z), (pb0.x, yb, pb0.z))
+        panels = max(2, int(L // 4.5))
+        for p in range(panels):
+            t0, t1 = (p + 0.12) / panels, (p + 0.88) / panels
+            mat, _ = K.PICTURES[(mural * 7 + 3) % len(K.PICTURES)]; mural += 1
+            for (da, ya), (db, yb), k in zip(prof[1:-2], prof[2:-1], range(n)):
+                q = []
+                for (d_, y_) in ((da, ya), (db, yb)):
+                    s0 = A + I * (d_ - 0.02) + dir_ * (d_ + (L - 2 * d_) * t0)
+                    s1 = A + I * (d_ - 0.02) + dir_ * (d_ + (L - 2 * d_) * t1)
+                    q.append((s0, s1, y_))
+                (s0a, s1a, ya_), (s0b, s1b, yb_) = q
+                v0, v1 = k / (n - 2), (k + 1) / (n - 2)
+                canvas(mat, [(s0a.x, ya_, s0a.z), (s0b.x, yb_, s0b.z), (s1b.x, yb_, s1b.z), (s1a.x, ya_, s1a.z)],
+                       uv=((1, v0), (1, v1), (0, v1), (0, v0)))
+            for t in (p / panels, (p + 1) / panels):
+                pts_ = [A + I * (d_ - 0.05) + dir_ * (d_ + (L - 2 * d_) * t) for (d_, _) in prof]
+                tube('cove_gold', [(q_.x, y_, q_.z) for q_, (_, y_) in zip(pts_, prof)], 0.07, 6)
+    cx0, cx1, cz0, cz1 = X0 + inset, X1 - inset, Z0 + inset, Z1 - inset
+    sx0, sx1, sz0, sz1 = -6.0, 6.0, 0.0, 16.0
+    for (a0, a1, b0, b1) in ((cx0, cx1, cz0, sz0), (cx0, cx1, sz1, cz1), (cx0, sx0, sz0, sz1), (sx1, cx1, sz0, sz1)):
+        wbox('cove_ground', a0, a1, HH, HH + 0.1, b0, b1)
+    wbox('walnut_panel', X0, X1, HH + 0.95, HH + 1.15, Z0, Z1)        # the roof deck above, unseen
+    for (a0, a1, b0, b1) in ((sx0, sx1, sz0 - 0.25, sz0), (sx0, sx1, sz1, sz1 + 0.25), (sx0 - 0.25, sx0, sz0, sz1), (sx1, sx1 + 0.25, sz0, sz1)):
+        wbox('tracery_walnut', a0, a1, HH, HH + 0.8, b0, b1)
+        wbox('gilt_frame', a0, a1, HH - 0.1, HH, b0, b1)
+    wbox('stained', sx0, sx1, HH + 0.77, HH + 0.8, sz0, sz1)
+    for xx in np.linspace(sx0, sx1, 9):
+        wbox('carved_walnut', xx - 0.06, xx + 0.06, HH + 0.65, HH + 0.77, sz0, sz1)
+    for zz in np.linspace(sz0, sz1, 13):
+        wbox('carved_walnut', sx0, sx1, HH + 0.65, HH + 0.77, zz - 0.06, zz + 0.06)
+    for (a0, a1, b0, b1) in ((cx0, cx1, cz0 - 0.12, cz0), (cx0, cx1, cz1, cz1 + 0.12), (cx0 - 0.12, cx0, cz0, cz1), (cx1, cx1 + 0.12, cz0, cz1)):
+        wbox('gilt_frame', a0, a1, HH - 0.18, HH + 0.02, b0, b1)
+
+    # --- light: three great gasoliers down the well ---
+    for z in (2.4, 11.4, 16.2):
+        grand_gasolier(0, HH, z, drop=5.2)
+
+    # --- the floor: patterned bands framing the walks; Eastlake benches back to back down the middle ---
+    def band(a0, a1, b0, b1, along_x):
+        corners = [(a0, 0.004, b0), (a0, 0.004, b1), (a1, 0.004, b1), (a1, 0.004, b0)]
+        L = (a1 - a0) if along_x else (b1 - b0)
+        reps = max(1, round(L / 0.6))
+        uv = ((0, 0), (0, 1), (reps, 1), (reps, 0)) if along_x else ((0, 0), (reps, 0), (reps, 1), (0, 1))
+        canvas('tile_band', corners, uv=uv)
+    for x in (-7.6, 7.2):
+        band(x, x + 0.4, BR1 + 0.6, FRONT - 0.6, False)
+    for z in (BR1 + 0.6, FRONT - 1.0):
+        band(-7.6, 7.6, z, z + 0.4, True)
+    for x in (-10.4, 10.0):
+        band(x, x + 0.4, BACK, FRONT, False)
+    eastlake_bench(0, 12.6, math.pi / 2)
+    eastlake_bench(0, 16.0, math.pi / 2)
