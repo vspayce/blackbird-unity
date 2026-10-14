@@ -1168,9 +1168,9 @@ def grand_hall2(HW):
             y = YL + (j + 1) * R
             wbox('marble_white', xa, xb, y - 0.5, y, za, zb_)
             wbox('velvet_red', xa + 0.45, xb - 0.45, y, y + 0.02, za - 0.012, zb_)
-        for sx in (xa, xb):   # the soffit's carved fascia, a sloping band on each side
-            quad('carved_walnut', (sx, YL - 0.5, ZL1), (sx, GY - 0.5, FOOT), (sx, GY - 0.2, FOOT), (sx, YL, ZL1))
-        bm_soffit = [(xa, YL - 0.5, ZL1), (xb, YL - 0.5, ZL1), (xb, GY - 0.5, FOOT), (xa, GY - 0.5, FOOT)]
+        for sx in (xa, xb):   # closed stringers: a carved band from the soffit up past the nosings, each side
+            quad('carved_walnut', (sx, YL - 0.55, ZL1), (sx, GY - 0.55, FOOT), (sx, GY + 0.12, FOOT), (sx, YL + 0.32, ZL1))
+        bm_soffit = [(xa, YL - 0.55, ZL1), (xb, YL - 0.55, ZL1), (xb, GY - 0.55, FOOT), (xa, GY - 0.55, FOOT)]
         quad('tracery_walnut', *bm_soffit)
 
     # --- balustrades: up the main flight, both sides of each return flight, round the landing ---
@@ -1290,7 +1290,8 @@ def grand_hall2(HW):
             return (min(ua, ub), max(ua, ub))
         ucuts = []
         for (a, b) in door_cuts(axis, line, 0, 0):
-            ucuts.append(to_u(a, b))
+            ua, ub = to_u(a, b)
+            if 0 < (ua + ub) / 2 < L: ucuts.append((max(0.0, ua), min(L, ub)))   # only this wall's doorways
         # ground storey: rail and frieze under the gallery
         lbox(F, 'carved_walnut', 0, L, 4.8, 4.95, 0, 0.08)
         lbox(F, 'frieze_paint', 0, L, 4.95, 6.45, 0, 0.012)
