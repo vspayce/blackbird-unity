@@ -110,7 +110,7 @@ namespace BlackBird.EditorTools
                 l.type = LightType.Point; l.color = Gas;
                 l.intensity = big ? BigLampIntensity : LampIntensity; l.range = big ? BigLampRange : LampRange;
                 l.lightmapBakeType = LightmapBakeType.Baked;
-                l.shadows = LightShadows.Soft; l.shadowRadius = 0.08f;
+                l.shadows = LightShadows.Soft; l.shapeRadius = 0.08f;
                 l.enabled = !day;   // by day the gas is off
             }
             var sunGo = new GameObject(day ? "Sun" : "Moon");
