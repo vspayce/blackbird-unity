@@ -33,3 +33,6 @@ crashlytics-build.properties
 # MCP for Unity screenshots
 /Assets/Screenshots/
 /Assets/Screenshots.meta
+
+# Blender working files (large; rebuilt by the scripts in Tools/blender)
+/Art~/

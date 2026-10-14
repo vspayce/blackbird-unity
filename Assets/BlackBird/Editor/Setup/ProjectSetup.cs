@@ -81,8 +81,11 @@ namespace BlackBird.Setup
             mi.useFileScale = true;
             mi.bakeAxisConversion = true;
 
-            if (p.Contains("/Set/"))
+            if (p.Contains("/Set/") || p.Contains("/Hopkins/"))
             {
+                // static sets: lightmap UVs so their gaslight can be baked
+                mi.generateSecondaryUV = true;
+                mi.secondaryUVHardAngle = 70; mi.secondaryUVPackMargin = 8; mi.secondaryUVAngleDistortion = 12; mi.secondaryUVAreaDistortion = 15;
                 mi.animationType = ModelImporterAnimationType.None;
                 mi.importAnimation = false;
                 mi.addCollider = false;
@@ -115,9 +118,9 @@ namespace BlackBird.Setup
                 ti.textureType = TextureImporterType.NormalMap;
                 ti.sRGBTexture = false;
             }
-            ti.maxTextureSize = p.Contains("/Set/") ? 1024 : 2048;
+            ti.maxTextureSize = p.Contains("/Characters/") ? 2048 : 1024;
             ti.mipmapEnabled = true;
-            ti.anisoLevel = p.Contains("/Set/") ? 4 : 1;
+            ti.anisoLevel = p.Contains("/Characters/") ? 1 : 4;
         }
 
         // Materials as editable .mat files in a Materials folder beside the model (so the scene builder
