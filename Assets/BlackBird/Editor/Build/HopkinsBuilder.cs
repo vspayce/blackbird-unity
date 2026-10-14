@@ -140,8 +140,8 @@ namespace BlackBird.EditorTools
             if (day)
             {
                 sky = new Material(Shader.Find("Skybox/Procedural"));
-                sky.SetFloat("_SunSize", 0.035f); sky.SetFloat("_AtmosphereThickness", 0.85f);
-                sky.SetColor("_SkyTint", new Color(0.55f, 0.6f, 0.68f)); sky.SetColor("_GroundColor", new Color(0.42f, 0.4f, 0.36f));
+                sky.SetFloat("_SunSize", 0.035f); sky.SetFloat("_AtmosphereThickness", 1.35f);   // coal smoke and sea haze, 1878
+                sky.SetColor("_SkyTint", new Color(0.62f, 0.62f, 0.62f)); sky.SetColor("_GroundColor", new Color(0.42f, 0.4f, 0.36f));
                 sky.SetFloat("_Exposure", 1.15f);
                 sky = SaveMat(sky, "HopkinsDaySky");
                 RenderSettings.skybox = sky;
@@ -365,13 +365,13 @@ namespace BlackBird.EditorTools
             var pano = go.AddComponent<Panorama>();
             var tex = AssetDatabase.LoadAssetAtPath<Texture2D>(Panorama);
             if (!tex) { Debug.LogWarning($"[Black Bird] {Panorama} missing; no panorama on the horizon."); return; }
-            var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            var m = new Material(Shader.Find("BlackBird/Panorama"));
             m.SetTexture("_BaseMap", tex); m.SetColor("_BaseColor", new Color(1.05f, 1.0f, 0.92f));
-            m.SetFloat("_Cull", 0);
+            m.SetColor("_Haze", new Color(0.80f, 0.79f, 0.76f));
             pano.material = SaveMat(m, "Muybridge1878");
             pano.centre = Web.W(0, 24, 11.7f);      // the tower, where Muybridge stood
             pano.radius = 900f;
-            pano.horizon = 0.48f;
+            pano.horizon = 0.30f;                  // the far hills sit about 30% down the plates
             pano.heading = -150f;                  // Alcatraz and Angel Island (40% along the strip) over the game's bay
         }
 
