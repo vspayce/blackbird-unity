@@ -28,7 +28,7 @@ namespace BlackBird.EditorTools
 
         // gaslight
         static readonly Color Gas = new Color(1f, 0.70f, 0.40f);
-        public static float LampIntensity = 5.5f, LampRange = 12f, BigLampIntensity = 13f, BigLampRange = 22f;
+        public static float LampIntensity = 5.5f, LampRange = 12f, BigLampIntensity = 13f, BigLampRange = 22f, OutdoorIntensity = 10f, OutdoorRange = 16f;
 
         // Holmes's remarks on the things he can look at (free roam; the chapter's own lines live in the case)
         static readonly Dictionary<string, string> Lines = new Dictionary<string, string>
@@ -105,10 +105,13 @@ namespace BlackBird.EditorTools
             foreach (var p in lampPts)
             {
                 bool big = p.y > 6 && InHall(p, hallBox) || p.y > 15;
+                var web = new Vector3(p.x * Web.SX, p.y, p.z * Web.SZ);
+                bool outdoor = Mathf.Abs(web.x) > 15.3f || web.z > 14.3f || web.z < -14.3f && !(Mathf.Abs(web.x) < 9.2f && web.z > -27.6f) && !(Mathf.Abs(web.x) < 13.6f && web.z > -24.1f && web.z < -16.9f);
                 var l = new GameObject("Gasolier").AddComponent<Light>();
                 l.transform.SetParent(lamps, false); l.transform.position = p + Vector3.down * 0.15f;
                 l.type = LightType.Point; l.color = Gas;
-                l.intensity = big ? BigLampIntensity : LampIntensity; l.range = big ? BigLampRange : LampRange;
+                l.intensity = big ? BigLampIntensity : outdoor ? OutdoorIntensity : LampIntensity;
+                l.range = big ? BigLampRange : outdoor ? OutdoorRange : LampRange;
                 l.lightmapBakeType = LightmapBakeType.Baked;
                 l.shadows = LightShadows.Soft; l.shapeRadius = 0.08f;
                 l.enabled = !day;   // by day the gas is off
@@ -127,7 +130,7 @@ namespace BlackBird.EditorTools
             else
             {
                 // the moon behind the house over the bay; light the street front softly from the other side
-                sun.color = SceneBuilder.Hex("#9ab0d0"); sun.intensity = 0.32f;
+                sun.color = SceneBuilder.Hex("#9ab0d0"); sun.intensity = 0.55f;
                 sun.transform.rotation = Quaternion.LookRotation(-Web.W(-30, 45, 60).normalized);
             }
             RenderSettings.sun = sun;
@@ -150,8 +153,8 @@ namespace BlackBird.EditorTools
             {
                 RenderSettings.skybox = null;
                 RenderSettings.ambientMode = AmbientMode.Trilight;
-                RenderSettings.ambientSkyColor = new Color(0.10f, 0.13f, 0.20f);
-                RenderSettings.ambientEquatorColor = new Color(0.06f, 0.07f, 0.09f);
+                RenderSettings.ambientSkyColor = new Color(0.14f, 0.18f, 0.27f);
+                RenderSettings.ambientEquatorColor = new Color(0.08f, 0.09f, 0.12f);
                 RenderSettings.ambientGroundColor = new Color(0.04f, 0.035f, 0.03f);
                 RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
                 RenderSettings.fogColor = SceneBuilder.Hex("#101823"); RenderSettings.fogDensity = 0.0035f;
