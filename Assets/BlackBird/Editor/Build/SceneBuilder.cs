@@ -18,13 +18,13 @@ namespace BlackBird.EditorTools
 {
     public static class SceneBuilder
     {
-        const string Root = "Assets/BlackBird";
-        const string Gen = Root + "/Generated";
+        internal const string Root = "Assets/BlackBird";
+        internal const string Gen = Root + "/Generated";
         const string ScenePath = Root + "/Scenes/BurrittAlley.unity";
         const string SetModel = Root + "/Art/Set/burritt.fbx";
-        static string CharModel(string n) => $"{Root}/Art/Characters/{n}.fbx";
+        internal static string CharModel(string n) => $"{Root}/Art/Characters/{n}.fbx";
 
-        static Color Hex(string h) { ColorUtility.TryParseHtmlString(h, out var c); return c; }
+        internal static Color Hex(string h) { ColorUtility.TryParseHtmlString(h, out var c); return c; }
 
         [MenuItem("Black Bird/Build Burritt Alley", priority = 0)]
         public static void Build()
@@ -169,6 +169,8 @@ namespace BlackBird.EditorTools
             var game = systems.AddComponent<Game>();
             game.holmes = holmes; game.watson = watson; game.people = people; game.cameraRig = rig; game.pocketLamp = pocket;
             game.hiddenBySpot = hidden; game.hiddenSpotIds = hiddenIds;
+            var ex = systems.AddComponent<Explorer>(); ex.holmes = holmes; ex.watson = watson; ex.cameraRig = rig;
+            systems.AddComponent<SceneSwitch>();
 
             var es = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
@@ -186,7 +188,7 @@ namespace BlackBird.EditorTools
         }
 
         // ---- the set ---------------------------------------------------------------------------------
-        static void MeasureAxes(GameObject set, WorldAxes axes)
+        internal static void MeasureAxes(GameObject set, WorldAxes axes)
         {
             // the bracket lamp on the alley wall is the last Lamp_ marker: web (≈-2, 3.35, -8)
             var lamp = set.GetComponentsInChildren<Transform>().Where(t => t.name.StartsWith("Lamp_")).OrderBy(t => t.name).LastOrDefault();
@@ -201,14 +203,14 @@ namespace BlackBird.EditorTools
             if (bestD > 1.5f) Debug.LogWarning($"[Black Bird] The set's alley lamp is at {p}, not where expected; check the export.");
         }
 
-        static void TuneSetMaterials(GameObject set)
+        internal static void TuneSetMaterials(GameObject set)
         {
             // stone wants to look wet; glass and flames want to glow above the bloom threshold
             foreach (var r in set.GetComponentsInChildren<Renderer>())
                 foreach (var m in r.sharedMaterials)
                 {
                     if (!m) continue;
-                    var n = m.name.ToLowerInvariant().Replace("burritt-", "");
+                    var n = m.name.ToLowerInvariant(); { int dash = n.IndexOf('-'); if (dash >= 0) n = n.Substring(dash + 1); }   // "model-material"
                     if (m.HasProperty("_BaseMap") && m.GetTexture("_BaseMap") && !n.StartsWith("glass_lit"))
                         m.SetColor("_BaseColor", Color.white);   // the texture carries the colour
                     if (n.StartsWith("brick") || n.StartsWith("clap") || n.Contains("wood")) m.SetFloat("_Smoothness", 0.18f);
@@ -232,7 +234,7 @@ namespace BlackBird.EditorTools
                 }
         }
 
-        static void TuneCastMaterials()
+        internal static void TuneCastMaterials()
         {
             foreach (var g in AssetDatabase.FindAssets("t:Material", new[] { Root + "/Art/Characters" }))
             {
@@ -264,7 +266,7 @@ namespace BlackBird.EditorTools
         }
 
         // ---- people ----------------------------------------------------------------------------------
-        static Walker Person(string name, string model, RuntimeAnimatorController ctrl, float walk, float run, bool player)
+        internal static Walker Person(string name, string model, RuntimeAnimatorController ctrl, float walk, float run, bool player)
         {
             var root = new GameObject(name);
             root.layer = 2;
@@ -303,7 +305,7 @@ namespace BlackBird.EditorTools
         }
 
         // turn a model so it faces its parent's +Z (Walker moves along the root's forward)
-        static void FaceForward(GameObject body)
+        internal static void FaceForward(GameObject body)
         {
             var anim = body.GetComponent<Animator>();
             if (!anim || !anim.isHuman) return;
@@ -316,7 +318,7 @@ namespace BlackBird.EditorTools
             body.transform.localRotation = Quaternion.Euler(0, ang, 0) * body.transform.localRotation;
         }
 
-        static void BuildArcher(RuntimeAnimatorController ctrl)
+        internal static void BuildArcher(RuntimeAnimatorController ctrl)
         {
             var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(CharModel("archer"));
             var archer = new GameObject("Miles Archer");
@@ -343,7 +345,7 @@ namespace BlackBird.EditorTools
         }
 
         // ---- what only Focus shows -------------------------------------------------------------------
-        static Transform[] BuildHiddenDetails(out string[] ids)
+        internal static Transform[] BuildHiddenDetails(out string[] ids)
         {
             var parent = new GameObject("FocusDetails").transform;
             var list = new List<Transform>(); var idl = new List<string>();
@@ -402,7 +404,7 @@ namespace BlackBird.EditorTools
             return list.ToArray();
         }
 
-        static GameObject Quad(string name, Material m, Transform parent)
+        internal static GameObject Quad(string name, Material m, Transform parent)
         {
             var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
             Object.DestroyImmediate(q.GetComponent<Collider>());
@@ -414,7 +416,7 @@ namespace BlackBird.EditorTools
         // ---- animation -------------------------------------------------------------------------------
         // Prefers motion capture dropped into Art/Animations or Unity's Starter Assets; falls back to
         // the clips exported with the cast.
-        static AnimationClip FindClip(params string[] names)
+        internal static AnimationClip FindClip(params string[] names)
         {
             var all = AssetDatabase.FindAssets("t:AnimationClip", new[] { "Assets" })
                 .Select(AssetDatabase.GUIDToAssetPath).Distinct()
@@ -431,7 +433,7 @@ namespace BlackBird.EditorTools
             return null;
         }
 
-        static AnimatorController BuildController(string name, bool lying, out float walkSpeed, out float runSpeed)
+        internal static AnimatorController BuildController(string name, bool lying, out float walkSpeed, out float runSpeed)
         {
             string path = $"{Gen}/{name}.controller";
             AssetDatabase.DeleteAsset(path);
@@ -485,10 +487,10 @@ namespace BlackBird.EditorTools
             EditorUtility.SetDirty(ac);
             return ac;
         }
-        static string Src(AnimationClip c) => c ? $"{c.name} <{Path.GetFileName(AssetDatabase.GetAssetPath(c))}>" : "none";
+        internal static string Src(AnimationClip c) => c ? $"{c.name} <{Path.GetFileName(AssetDatabase.GetAssetPath(c))}>" : "none";
 
         // ---- render pipeline ---------------------------------------------------------------------------
-        static UniversalRenderPipelineAsset EnsurePipeline()
+        internal static UniversalRenderPipelineAsset EnsurePipeline()
         {
             string path = $"{Gen}/BlackBird_URP.asset", rpath = $"{Gen}/BlackBird_Renderer.asset";
             var asset = AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(path);
@@ -536,7 +538,7 @@ namespace BlackBird.EditorTools
             return asset;
         }
 
-        static VolumeProfile Profile(string name, System.Action<VolumeProfile> fill)
+        internal static VolumeProfile Profile(string name, System.Action<VolumeProfile> fill)
         {
             string path = $"{Gen}/{name}.asset";
             AssetDatabase.DeleteAsset(path);
@@ -550,7 +552,7 @@ namespace BlackBird.EditorTools
         }
 
         // ---- materials and textures ----------------------------------------------------------------------
-        static Material Save(Material m, string name)
+        internal static Material Save(Material m, string name)
         {
             string path = $"{Gen}/{name}.mat";
             var old = AssetDatabase.LoadAssetAtPath<Material>(path);
@@ -559,21 +561,21 @@ namespace BlackBird.EditorTools
             return m;
         }
 
-        static Material Lit(string name, Color c, float smooth, float metal = 0)
+        internal static Material Lit(string name, Color c, float smooth, float metal = 0)
         {
             var m = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             m.SetColor("_BaseColor", c); m.SetFloat("_Smoothness", smooth); m.SetFloat("_Metallic", metal);
             return Save(m, name);
         }
 
-        static Material Emissive(string name, Color c, float strength)
+        internal static Material Emissive(string name, Color c, float strength)
         {
             var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             m.SetColor("_BaseColor", c * strength);
             return Save(m, name);
         }
 
-        static void Transparent(Material m, bool additive)
+        internal static void Transparent(Material m, bool additive)
         {
             m.SetFloat("_Surface", 1);
             m.SetFloat("_Blend", additive ? 2 : 0);
@@ -591,7 +593,7 @@ namespace BlackBird.EditorTools
             m.SetShaderPassEnabled("DepthOnly", false);
         }
 
-        static Material Unlit(string name, Color c, Texture2D tex, bool transparent, bool additive)
+        internal static Material Unlit(string name, Color c, Texture2D tex, bool transparent, bool additive)
         {
             var m = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
             m.SetColor("_BaseColor", c);
@@ -601,7 +603,7 @@ namespace BlackBird.EditorTools
             return Save(m, name);
         }
 
-        static Material FogMaterial()
+        internal static Material FogMaterial()
         {
             var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Lit"));
             m.SetTexture("_BaseMap", Tex("fogpuff", FogTexture));
@@ -622,7 +624,7 @@ namespace BlackBird.EditorTools
             return Save(m, "Fog");
         }
 
-        static Material ConeMaterial()
+        internal static Material ConeMaterial()
         {
             var m = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
             m.SetTexture("_BaseMap", Texture2D.whiteTexture);
@@ -636,7 +638,7 @@ namespace BlackBird.EditorTools
             return Save(m, "LightCone");
         }
 
-        static Texture2D Tex(string name, System.Func<int, Color32[]> draw, int n = 128)
+        internal static Texture2D Tex(string name, System.Func<int, Color32[]> draw, int n = 128)
         {
             string path = $"{Gen}/{name}.png";
             if (!File.Exists(path))
@@ -653,7 +655,7 @@ namespace BlackBird.EditorTools
             return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
 
-        static Color32[] GlowTexture(int n)
+        internal static Color32[] GlowTexture(int n)
         {
             var px = new Color32[n * n]; float c = (n - 1) / 2f;
             for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
@@ -665,7 +667,7 @@ namespace BlackBird.EditorTools
             return px;
         }
 
-        static Color32[] FogTexture(int n)
+        internal static Color32[] FogTexture(int n)
         {
             var px = new Color32[n * n]; float c = (n - 1) / 2f;
             for (int y = 0; y < n; y++) for (int x = 0; x < n; x++)
@@ -679,7 +681,7 @@ namespace BlackBird.EditorTools
             return px;
         }
 
-        static Color32[] HeelTexture(int n)
+        internal static Color32[] HeelTexture(int n)
         {
             // a narrow pointed sole and a small heel, toe at the top
             var px = new Color32[n * n];
@@ -694,7 +696,7 @@ namespace BlackBird.EditorTools
             return px;
         }
 
-        static Light PointLight(string name, Vector3 pos, Color c, float intensity, float range)
+        internal static Light PointLight(string name, Vector3 pos, Color c, float intensity, float range)
         {
             var l = new GameObject(name).AddComponent<Light>();
             l.type = LightType.Point; l.transform.position = pos; l.color = c; l.intensity = intensity; l.range = range; l.shadows = LightShadows.None;

@@ -119,6 +119,13 @@ namespace BlackBird.Setup
                 ti.sRGBTexture = false;
             }
             ti.maxTextureSize = p.Contains("/Characters/") ? 2048 : 1024;
+            if (p.Contains("/Panorama/"))
+            {
+                // Muybridge's strip: keep its full width, no power-of-two squashing
+                ti.maxTextureSize = 8192; ti.npotScale = TextureImporterNPOTScale.None;
+                ti.wrapModeU = TextureWrapMode.Repeat; ti.wrapModeV = TextureWrapMode.Clamp;
+                ti.textureCompression = TextureImporterCompression.CompressedHQ;
+            }
             ti.mipmapEnabled = true;
             ti.anisoLevel = p.Contains("/Characters/") ? 1 : 4;
         }

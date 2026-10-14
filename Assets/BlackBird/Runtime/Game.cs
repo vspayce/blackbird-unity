@@ -15,11 +15,7 @@ namespace BlackBird
         public Transform[] hiddenBySpot;        // optional: the HiddenDetail object for each spot id (heel, scent, webley)
         public string[] hiddenSpotIds;
 
-        public float walkSpeed = 1.55f, strollSpeed = 0.75f, hurrySpeed = 2.4f;
-        [Tooltip("How quickly the camera swings round behind Holmes when he walks and you aren't steering it (deg/s).")]
-        public float followTurn = 120f;
-        [Tooltip("Test only: pushes the move stick (x, y) when nothing else does.")]
-        public Vector2 autopilot;
+        Explorer ex;
 
         enum Mode { Explore, Closeup, Talk, Done }
         Mode mode;
@@ -28,17 +24,11 @@ namespace BlackBird
         Action afterLines;
         string contextLabel; Action contextAct;
 
-        float lastLook = -10f;
-
         void Start()
         {
-            var ha = holmes.GetComponentInChildren<Animator>(); if (ha) ha.updateMode = AnimatorUpdateMode.UnscaledTime;
-            // Watson keeps at Holmes's shoulder: never let him body-block Holmes
-            if (watson && holmes.TryGetComponent<CharacterController>(out var hc) && watson.TryGetComponent<CharacterController>(out var wc))
-                Physics.IgnoreCollision(hc, wc);
-            holmes.transform.position = Chapter1.Start;
-            holmes.transform.rotation = Quaternion.LookRotation(Web.W(0, -1) - Web.W(0, 0));
-            cameraRig.SnapBehind();
+            ex = GetComponent<Explorer>();
+            if (!ex) { ex = gameObject.AddComponent<Explorer>(); ex.holmes = holmes; ex.watson = watson; ex.cameraRig = cameraRig; }
+            ex.Place(Chapter1.Start, Quaternion.LookRotation(Web.W(0, -1) - Web.W(0, 0)).eulerAngles.y);
             for (int i = 0; i < people.Length && i < Chapter1.People.Length; i++)
             {
                 var d = Chapter1.People[i];
@@ -79,26 +69,7 @@ namespace BlackBird
                 return;
             }
 
-            // exploring: move relative to the camera; the camera swings round behind Holmes as he walks
-            // unless you're steering it yourself
-            GameInput.I.allowMouseCapture = true;
-            cameraRig.AddLook(input.Look);
-            if (input.LookedThisFrame) lastLook = Time.unscaledTime;
-            var m = input.Move.sqrMagnitude > 0.01f ? input.Move : autopilot;
-            var fwd = Quaternion.Euler(0, cameraRig.yaw, 0);
-            var dir = fwd * new Vector3(m.x, 0, m.y);
-            float push = m.magnitude;
-            float speed = push < 0.05f ? 0 : (push < 0.7f ? Mathf.Lerp(strollSpeed * 0.6f, strollSpeed, push / 0.7f) : Mathf.Lerp(strollSpeed, walkSpeed, (push - 0.7f) / 0.3f));
-            if (input.Hurry && push > 0.5f) speed = hurrySpeed;
-            holmes.Drive(push > 0.05f ? dir.normalized * speed : Vector3.zero, Time.unscaledDeltaTime);   // Focus slows the world, not Holmes
-            // (a stick pushed mostly forward only: steering diagonally while the camera chases would walk in circles)
-            if (m.y > 0.5f && Mathf.Abs(m.x) < 0.35f && holmes.Speed > 0.3f && Time.unscaledTime - lastLook > 0.8f)
-            {
-                // ease toward Holmes's heading, more strongly the further off it is
-                float heading = holmes.transform.eulerAngles.y;
-                float off = Mathf.DeltaAngle(cameraRig.yaw, heading);
-                cameraRig.yaw += Mathf.Clamp(off, -1, 1) * Mathf.Min(Mathf.Abs(off), followTurn * Mathf.InverseLerp(0, 40, Mathf.Abs(off)) * Time.unscaledDeltaTime);
-            }
+            ex.Steer();
             Follow(dt);
             People(dt);
             FindContext();
@@ -108,26 +79,7 @@ namespace BlackBird
         }
 
         // ---- Watson keeps to Holmes's left shoulder ------------------------------------------------
-        void Follow(float dt)
-        {
-            if (!watson) return;
-            var h = holmes.transform;
-            var slot = h.position - h.right * 0.95f - h.forward * 0.55f;
-            var to = slot - watson.transform.position; to.y = 0;
-            float d = to.magnitude;
-            if (d > 0.35f)
-            {
-                float s = Mathf.Clamp(d * 1.6f, 0.4f, holmes.Speed + 0.6f);
-                if (d > 4f) s = 2.4f;                     // catching up
-                watson.Drive(to / d * s, dt);
-            }
-            else
-            {
-                watson.Idle(dt);
-                watson.FaceTowards(watson.transform.position + h.forward, dt);
-            }
-            watson.lookPoint = mode == Mode.Closeup ? Chapter1.Closeup.Look : (Vector3?)(h.position + Vector3.up * 1.6f + h.forward * 3f);
-        }
+        void Follow(float dt) => ex.Follow(dt, mode == Mode.Closeup ? Chapter1.Closeup.Look : (Vector3?)null);
 
         void People(float dt)
         {
