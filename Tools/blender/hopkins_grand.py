@@ -61,7 +61,7 @@ def main():
         big_lamps=[[round(v, 3) for v in p] for p in (G.BIG_LAMPS if G else [])],
         rooms=K.ROOMS,
         interact=K.INTERACT + (G.INTERACT if G else []),
-        spawn=dict(pos=[-4.0, K.STREET_Y, round(47.4 + K.SZ, 2)], yaw=math.pi),
+        spawn=dict(pos=[-2.6, K.STREET_Y, round(K.WALL_Z1 + 1.6, 2)], yaw=math.pi),   # the near sidewalk, at the foot of the front steps
         street=K.STREET_Y, wall=K.WALL_Z1, hall=[-7, 7, -6, 10],
         tower=dict(top=hopkins_house.TOWER_TOP, foot=[9.2, 0, -8.6]),
         colliders=K.COLLIDERS,

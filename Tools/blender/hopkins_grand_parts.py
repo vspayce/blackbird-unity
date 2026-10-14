@@ -546,6 +546,16 @@ def grand_hall(R):
 def build(R):
     rear_verandas()
     terraces()
+    front_walk()
+
+
+def front_walk():
+    """The flagged walk from the head of the front steps to the drive. The prototype left the lawn open here
+    (its walking used height tables, not the ground itself), which in Unity is a hole you fall through."""
+    z_top = 24.4                                   # where the front steps arrive at the terrace
+    wbox('flags', -1.95, 1.95, -0.25, -0.03, 21.6, z_top)
+    for x in (-1.95, 1.95):                        # granite edging along the lawn
+        wbox('granite', x - 0.12, x + 0.12, -0.25, 0.02, 21.6, z_top)
 
 
 # ---- outside --------------------------------------------------------------------------------------------------
