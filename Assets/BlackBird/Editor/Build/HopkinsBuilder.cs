@@ -144,7 +144,7 @@ namespace BlackBird.EditorTools
                 RenderSettings.skybox = sky;
                 RenderSettings.ambientMode = AmbientMode.Skybox; RenderSettings.ambientIntensity = 1f;
                 RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
-                RenderSettings.fogColor = new Color(0.74f, 0.73f, 0.69f); RenderSettings.fogDensity = 0.0011f;
+                RenderSettings.fogColor = new Color(0.74f, 0.73f, 0.69f); RenderSettings.fogDensity = 0.0004f;   // a light haze; the panorama carries the distance
             }
             else
             {
@@ -353,6 +353,9 @@ namespace BlackBird.EditorTools
             m.SetFloat("_Cull", 0);
             pano.material = SaveMat(m, "Muybridge1878");
             pano.centre = Web.W(0, 24, 11.7f);      // the tower, where Muybridge stood
+            pano.radius = 900f;
+            pano.horizon = 0.48f;
+            pano.heading = -150f;                  // Alcatraz and Angel Island (40% along the strip) over the game's bay
         }
 
         // ---- probes --------------------------------------------------------------------------------------
