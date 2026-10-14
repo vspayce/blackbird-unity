@@ -28,7 +28,7 @@ namespace BlackBird.EditorTools
 
         // gaslight
         static readonly Color Gas = new Color(1f, 0.70f, 0.40f);
-        public static float LampIntensity = 5.5f, LampRange = 12f, BigLampIntensity = 13f, BigLampRange = 22f, OutdoorIntensity = 10f, OutdoorRange = 16f;
+        public static float LampIntensity = 5.5f, LampRange = 12f, BigLampIntensity = 20f, BigLampRange = 30f, OutdoorIntensity = 10f, OutdoorRange = 16f;
 
         // Holmes's remarks on the things he can look at (free roam; the chapter's own lines live in the case)
         static readonly Dictionary<string, string> Lines = new Dictionary<string, string>

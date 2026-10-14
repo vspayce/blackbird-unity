@@ -1168,9 +1168,12 @@ def grand_hall2(HW):
             y = YL + (j + 1) * R
             wbox('marble_white', xa, xb, y - 0.5, y, za, zb_)
             wbox('velvet_red', xa + 0.45, xb - 0.45, y, y + 0.02, za - 0.012, zb_)
-        for sx in (xa, xb):   # closed stringers: a carved band from the soffit up past the nosings, each side
-            quad('carved_walnut', (sx, YL - 0.55, ZL1), (sx, GY - 0.55, FOOT), (sx, GY + 0.12, FOOT), (sx, YL + 0.32, ZL1))
-        bm_soffit = [(xa, YL - 0.55, ZL1), (xb, YL - 0.55, ZL1), (xb, GY - 0.55, FOOT), (xa, GY - 0.55, FOOT)]
+        # the soffit runs under every slab's back edge (the slabs rise 0.2 a tread; the last riser is the bridge's), and
+        # closed stringers each side from the soffit up past the nosings
+        s0, s1 = YL - 0.53, YL - 0.53 + (N - 1) * R
+        for sx in (xa, xb):
+            quad('carved_walnut', (sx, s0, ZL1), (sx, s1, FOOT), (sx, YL + 0.3 + (N - 1) * R, FOOT), (sx, YL + 0.3, ZL1))
+        bm_soffit = [(xa, s0, ZL1), (xb, s0, ZL1), (xb, s1, FOOT), (xa, s1, FOOT)]
         quad('tracery_walnut', *bm_soffit)
 
     # --- balustrades: up the main flight, both sides of each return flight, round the landing ---
