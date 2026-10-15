@@ -91,7 +91,7 @@ namespace BlackBird.EditorTools
             var id = UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group);
             PlayerSettings.SetApplicationIdentifier(id, "com.vspayce.blackbird");
             PlayerSettings.bundleVersion = "0.1";
-            PlayerSettings.SetScriptingBackend(id, ScriptingImplementation.IL2CPP);
+            if (target != BuildTarget.StandaloneOSX) PlayerSettings.SetScriptingBackend(id, ScriptingImplementation.IL2CPP);   // (the Mac app stays on Mono: no Xcode needed)
             if (target == BuildTarget.tvOS) PlayerSettings.tvOS.requireExtendedGameController = true;   // played with a controller
             if (target == BuildTarget.iOS) PlayerSettings.iOS.targetOSVersionString = "16.0";
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
