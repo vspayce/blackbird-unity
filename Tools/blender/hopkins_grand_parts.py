@@ -1163,7 +1163,7 @@ def grand_hall2(HW):
     ARCH_H = HW.fy(VEST_ARCH[1])
 
     # --- the main flight: one riser per step (nothing buried), stepped marble cheeks, closed behind ---
-    RW = 2.8                                            # the runner's half-width
+    RW = 1.9                                            # the runner's half-width: white marble either side
     for k in range(N - 1):
         za, zb_ = FOOT - (k + 1) * TR, FOOT - k * TR
         hw = XM + (FLARE[k] if k < len(FLARE) else 0.0)
