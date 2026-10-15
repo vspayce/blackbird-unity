@@ -124,6 +124,26 @@ def patch():
     K.rooms = rooms
     K.build_hall = grand_hall
     K.stair_runner = lambda: None        # the grand stair lays its own runner; two would fight
+    # the doorway from the vestibule into the hall becomes a great open arch (built before the warp, in the
+    # prototype's units: 3.6 wide and 4.6 high there, about 6 m by 5.5 m in the enlarged house)
+    orig_wall, orig_lining, orig_leaves = K.wall, K.lining, K.door_leaves
+    def is_vest_hall(F, L):
+        o = F @ Vector((0, 0, 0)); r = F.to_3x3() @ Vector((1, 0, 0))
+        return abs(o.x + 3) < 0.05 and abs(o.z - 10) < 0.05 and abs(r.x - 1) < 0.01 and abs(L - 6) < 0.05
+    def wall(a, b, y0, y1, openings=(), *args, **kw):
+        if tuple(a) == (-3, 10) and tuple(b) == (3, 10) and y0 == 0:
+            openings = [(3, VEST_ARCH[0], 0, VEST_ARCH[1])]
+        return orig_wall(a, b, y0, y1, openings, *args, **kw)
+    def lining(F, L, side, openings, *args, **kw):
+        if is_vest_hall(F, L):
+            openings = [(3, VEST_ARCH[0], 0, VEST_ARCH[1])]
+        return orig_lining(F, L, side, openings, *args, **kw)
+    def door_leaves(F, t, w, h, side, *args, **kw):
+        p = F @ Vector((t, 0, 0))
+        if abs(p.x) < 0.05 and abs(p.y) < 0.05 and abs(p.z - 10) < 0.05:
+            return                                   # no doors in the great arch
+        return orig_leaves(F, t, w, h, side, *args, **kw)
+    K.wall, K.lining, K.door_leaves = wall, lining, door_leaves
 
 
 # ---- pieces ----------------------------------------------------------------------------------------------
@@ -1105,6 +1125,7 @@ def rnd(a, b):
 # again on either side to the bridge, which crosses the hall at gallery level from side gallery to side gallery.
 
 HALL2 = dict(X0=-11.0, X1=11.0, Z0=-6.0, Z1=22.0, GY=7.2, TOP=14.4, HH=16.8)
+VEST_ARCH = (3.6, 4.6)        # the vestibule's arch into the hall, in the prototype's units (width, height)
 
 
 def arcade_span(F, L, v_spring, v_top, depth, sharp=0.62):
@@ -1134,19 +1155,30 @@ def grand_hall2(HW):
     ZL1 = FOOT - (N - 1) * TR                           # the landing's front edge
     ZL0 = ZL1 - 3.4                                     # and its back edge
     YL = N * R                                          # the landing: 3.6 m up
-    XM, XR0, XR1 = 3.0, 3.3, 6.1                        # main flight half-width; return flights from XR0 to XR1
+    XM, XR0, XR1 = 4.0, 4.3, 7.1                        # main flight half-width (8 m); return flights from XR0 to XR1
+    FLARE = (1.5, 1.0, 0.5)                             # the bottom steps spread wider, with rounded ends
     BR0, BR1 = FOOT, FOOT + 2.4                         # the bridge
     pic = [0]
+    ARCH_HW = HW.fx(VEST_ARCH[0] / 2)                   # the vestibule arch: half-width and height after the warp
+    ARCH_H = HW.fy(VEST_ARCH[1])
 
     # --- the main flight: one riser per step (nothing buried), stepped marble cheeks, closed behind ---
+    RW = 2.8                                            # the runner's half-width
     for k in range(N - 1):
         za, zb_ = FOOT - (k + 1) * TR, FOOT - k * TR
-        wbox('marble_white', -XM, XM, k * R - 0.01, (k + 1) * R, za, zb_)
-        wbox('velvet_red', -2.0, 2.0, (k + 1) * R, (k + 1) * R + 0.02, za, zb_ + 0.012)
-        wbox('velvet_red', -2.0, 2.0, k * R, (k + 1) * R, zb_, zb_ + 0.012)
-        tube('brass', [(-2.0, (k + 1) * R + 0.03, zb_ - 0.03), (2.0, (k + 1) * R + 0.03, zb_ - 0.03)], 0.009, 5)
-        if k:
+        hw = XM + (FLARE[k] if k < len(FLARE) else 0.0)
+        wbox('marble_white', -hw, hw, k * R - 0.01, (k + 1) * R, za, zb_)
+        if k < len(FLARE):                              # bullnose ends: a drum of marble at each end of the step
+            for sx in (-hw, hw):
+                cyl('marble_white', (sx, k * R - 0.01, (za + zb_) / 2), R + 0.01, TR / 2 + 0.08 * (len(FLARE) - k), seg=16)
+        wbox('velvet_red', -RW, RW, (k + 1) * R, (k + 1) * R + 0.02, za, zb_ + 0.012)
+        wbox('velvet_red', -RW, RW, k * R, (k + 1) * R, zb_, zb_ + 0.012)
+        tube('brass', [(-RW, (k + 1) * R + 0.03, zb_ - 0.03), (RW, (k + 1) * R + 0.03, zb_ - 0.03)], 0.009, 5)
+        if k >= len(FLARE):
             for sx in (-XM, XM):
+                ngon('marble_white', [(sx, 0, za), (sx, 0, zb_), (sx, k * R, zb_), (sx, k * R, za)])
+        elif k:
+            for sx in (-hw, hw):                        # the flared steps' own cheeks
                 ngon('marble_white', [(sx, 0, za), (sx, 0, zb_), (sx, k * R, zb_), (sx, k * R, za)])
     ngon('marble_white', [(-XM, 0, ZL1), (XM, 0, ZL1), (XM, YL - 0.4, ZL1), (-XM, YL - 0.4, ZL1)])
 
@@ -1195,19 +1227,25 @@ def grand_hall2(HW):
     balustrade_panel(frame((-XR1, 0, ZL0), (1, 0, 0), (0, 0, -1)), 0.0, 2 * XR1, YL, 1.05)
     # bronze torchere figures at the foot, either side, and lamps on the landing's newels
     for s in (-1, 1):
-        torchere_figure(s * 3.75, FOOT + 0.6, math.pi if s < 0 else 0, h=2.4)
+        torchere_figure(s * (XM + FLARE[0] + 0.2), FOOT + 1.0, math.pi if s < 0 else 0, h=2.6)
 
     # --- the galleries: round all four walls, and the bridge across the hall ---
+    # The bridge is open in the middle: each return flight arrives on its own short bridge to the side gallery, and
+    # between them the whole stair stands open from the floor to the laylight.
     strips = [(X0, -EDGE, Z0, Z1), (EDGE, X1, Z0, Z1), (-EDGE, EDGE, FRONT, Z1), (-EDGE, EDGE, Z0, BACK),
-              (-EDGE, EDGE, BR0, BR1)]
+              (-EDGE, -XR0, BR0, BR1), (XR0, EDGE, BR0, BR1)]
     for (a0, a1, b0, b1) in strips:
         wbox('carved_walnut', a0, a1, GY - 0.5, GY, b0, b1)
         wbox('parquet', a0, a1, GY, GY + 0.02, b0, b1)
-    wbox('gilt_frame', -EDGE, EDGE, GY - 0.56, GY - 0.5, BR0 - 0.02, BR1 + 0.02)
-    # the bridge's balustrades: across the front, and behind except where the return flights arrive
-    balustrade_panel(frame((-EDGE, 0, BR1), (1, 0, 0), (0, 0, 1)), 0.0, 2 * EDGE, GY, 1.05)
-    for a, b in ((-EDGE, -XR1), (-XR0, XR0), (XR1, EDGE)):
-        balustrade_panel(frame((a, 0, BR0), (1, 0, 0), (0, 0, -1)), 0.0, b - a, GY, 1.05)
+    for s in (-1, 1):
+        xa, xb = sorted((s * XR0, s * EDGE))
+        wbox('gilt_frame', xa, xb, GY - 0.56, GY - 0.5, BR0 - 0.02, BR1 + 0.02)
+        # railed across the front, at the open end, and behind except where the return flight arrives
+        balustrade_panel(frame((xa, 0, BR1), (1, 0, 0), (0, 0, 1)), 0.0, xb - xa, GY, 1.05)
+        balustrade_panel(frame((s * XR0, 0, BR0), (0, 0, 1), (-s, 0, 0)), 0.0, BR1 - BR0, GY, 1.05)
+        xa, xb = sorted((s * XR1, s * EDGE))
+        balustrade_panel(frame((xa, 0, BR0), (1, 0, 0), (0, 0, -1)), 0.0, xb - xa, GY, 1.05)
+        K.collide(min(s * XR0, s * (XR0 + 0.1)), GY, BR0, max(s * XR0, s * (XR0 + 0.1)), GY + 1.05, BR1)
 
     # --- the arcade: clustered posts carrying pointed arches, on the ground and gallery storeys ---
     side_z = [BACK, -0.4, 3.0, BR0, BR1, 12.4, 16.0, FRONT]
@@ -1221,13 +1259,11 @@ def grand_hall2(HW):
         lit = z not in (BR0, BR1)
         clustered_post(x, z, 0, GY - 0.5, r=0.2, lamp=3.3 if lit else None, facing=inward)
         clustered_post(x, z, GY, TOP, r=0.17, lamp=10.4 if lit else None, facing=inward)
-    # the screen in front of the stair: posts under the bridge's front edge, arches between
-    screen = [(-EDGE, BR1), (-XM, BR1), (XM, BR1), (EDGE, BR1)]
-    for (x, z) in screen[1:3]:
-        clustered_post(x, z, 0, GY - 0.5, r=0.2, lamp=3.3, facing=(0, 0, 1))
-    for (x, z) in ((-6.6, BR0), (6.6, BR0)):
-        clustered_post(x, z, 0, GY - 0.5, r=0.2)
-    rows.append(screen)
+    # under each short bridge: a post at its open corner and an arch to the side arcade; nothing across the stair
+    screens = [[(-EDGE, BR1), (-XR0, BR1)], [(XR0, BR1), (EDGE, BR1)]]
+    for x in (-XR0, XR0):
+        clustered_post(x, BR1, 0, GY - 0.5, r=0.2, lamp=3.3, facing=(0, 0, 1))
+    rows += screens
 
     def F_between(a, b):
         A, B = Vector((a[0], 0, a[1])), Vector((b[0], 0, b[1]))
@@ -1240,7 +1276,7 @@ def grand_hall2(HW):
             arcade_span(F, L, 3.4, GY - 0.5, 0.36)
             lbox(F, 'carved_walnut', 0, L, GY - 0.5, GY, -0.22, 0.22)
             lbox(F, 'gilt_frame', 0, L, GY - 0.56, GY - 0.5, -0.23, 0.23)
-            if row is screen: continue
+            if row in screens: continue
             arcade_span(F, L, 11.3, TOP, 0.3)
             lbox(F, 'carved_walnut', 0, L, TOP - 0.1, TOP + 0.25, -0.2, 0.2)
             bridge_bay = ri >= 2 and {a[1], b[1]} == {BR0, BR1}
@@ -1279,7 +1315,7 @@ def grand_hall2(HW):
             cuts.append((min(a, b) - lo - 0.18, max(a, b) - lo + 0.18))
         return cuts
     ground_doors = {'w': [(HW.fz(-2.9), HW.fz(-1.1)), (HW.fz(5.1), HW.fz(6.9))],
-                    'front': [(HW.fx(-1.2), HW.fx(1.2))]}
+                    'front': [(-ARCH_HW - 0.4, ARCH_HW + 0.4)]}
     walls = [  # frame origin, direction, inward normal, length, axis, line, ground cuts
         ((X0 + T / 2 + 0.01, Z1), (0, 0, -1), (1, 0, 0), Z1 - Z0, 'z', X0, 'w', Z1, -1),
         ((X1 - T / 2 - 0.01, Z0), (0, 0, 1), (-1, 0, 0), Z1 - Z0, 'z', X1, 'w', Z0, 1),
@@ -1295,9 +1331,15 @@ def grand_hall2(HW):
         for (a, b) in door_cuts(axis, line, 0, 0):
             ua, ub = to_u(a, b)
             if 0 < (ua + ub) / 2 < L: ucuts.append((max(0.0, ua), min(L, ub)))   # only this wall's doorways
-        # ground storey: rail and frieze under the gallery
-        lbox(F, 'carved_walnut', 0, L, 4.8, 4.95, 0, 0.08)
-        lbox(F, 'frieze_paint', 0, L, 4.95, 6.45, 0, 0.012)
+        # ground storey: rail and frieze under the gallery (on the front wall they stop at the arch from the vestibule)
+        spans = [(0, L)]
+        if gkey == 'front':
+            ca, cb = to_u(-ARCH_HW - 0.5, ARCH_HW + 0.5)
+            spans = [(0, ca), (cb, L)]
+            lbox(F, 'frieze_paint', ca, cb, ARCH_H + 0.15, 6.45, 0, 0.012)
+        for (ua, ub) in spans:
+            lbox(F, 'carved_walnut', ua, ub, 4.8, 4.95, 0, 0.08)
+            lbox(F, 'frieze_paint', ua, ub, 4.95, 6.45, 0, 0.012)
         lbox(F, 'carved_walnut', 0, L, 6.45, 6.7, 0, 0.14)
         # gallery storey
         u = 0.0
@@ -1393,5 +1435,18 @@ def grand_hall2(HW):
         band(-7.6, 7.6, z, z + 0.4, True)
     for x in (-10.4, 10.0):
         band(x, x + 0.4, BACK, FRONT, False)
-    eastlake_bench(0, 12.6, math.pi / 2)
-    eastlake_bench(0, 16.0, math.pi / 2)
+    for x in (-5.4, 5.4):                               # off the axis, so the stair is seen from the door
+        eastlake_bench(x, 14.3, math.pi / 2)
+
+    # --- the great arch from the vestibule: a carved pointed head in the wall, clustered posts either side ---
+    Fa = frame((-ARCH_HW, 0, Z1), (1, 0, 0), (0, 0, -1))
+    sharp = 0.55
+    _, rise_ = pointed(0, 2 * ARCH_HW, 0.0, sharp=sharp)
+    arch(Fa, 0, 2 * ARCH_HW, ARCH_H - 0.1 - rise_, ARCH_H, depth=T + 0.5, sharp=sharp)
+    for sx in (-1, 1):
+        for zz, face in ((Z1 - T / 2 - 0.45, (0, 0, -1)), (Z1 + T / 2 + 0.45, (0, 0, 1))):
+            clustered_post(sx * (ARCH_HW + 0.45), zz, 0, ARCH_H + 0.5, r=0.2, lamp=3.4 if face[2] < 0 else None, facing=face)
+        lbox(Fa, 'carved_walnut', -0.95 if sx < 0 else 2 * ARCH_HW + 0.05, -0.05 if sx < 0 else 2 * ARCH_HW + 0.95,
+             ARCH_H + 0.5, ARCH_H + 0.85, -T / 2 - 0.7, T / 2 + 0.7)
+    lbox(Fa, 'carved_walnut', -0.95, 2 * ARCH_HW + 0.95, ARCH_H, ARCH_H + 0.12, -T / 2 - 0.3, T / 2 + 0.3)
+    lbox(Fa, 'gilt_frame', -0.95, 2 * ARCH_HW + 0.95, ARCH_H + 0.12, ARCH_H + 0.18, -T / 2 - 0.32, T / 2 + 0.32)
