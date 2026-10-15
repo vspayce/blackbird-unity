@@ -150,7 +150,7 @@ namespace BlackBird
             var d = onCaptionDone; onCaptionDone = null; d?.Invoke();
         }
 
-        public void ClueSlip(Clue c) { slipTitle.text = "New clue · " + c.title; slipText.text = c.text; slipTimer = 6f; }
+        public void ClueSlip(Clue c) { slipTitle.text = "New clue · " + c.title; slipText.text = c.text; slipTimer = 6f; Sound.Clue(); }
 
         public void Context(string label, bool touch)
         {

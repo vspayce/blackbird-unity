@@ -80,6 +80,39 @@ namespace BlackBird.EditorTools
                 if (!f.EndsWith(".meta")) File.Copy(f, Path.Combine(img, Path.GetFileName(f)), true);
         }
 
+        // ---- Apple: a Mac app to play at once, and Xcode projects for iPhone/iPad and Apple TV ----
+        static readonly string[] AllScenes = { "BurrittAlley", "HopkinsNight", "HopkinsDay" };
+        static string BuildsDir => Path.Combine(ProjectRoot, "Builds");
+
+        static void Apple(BuildTarget target, BuildTargetGroup group, string path, string what)
+        {
+            ConfigurePlayer();
+            if (!BuildPipeline.IsBuildTargetSupported(group, target)) { Debug.LogError($"[Black Bird] {what}: install the {target} module in Unity Hub first."); return; }
+            var id = UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group);
+            PlayerSettings.SetApplicationIdentifier(id, "com.vspayce.blackbird");
+            PlayerSettings.bundleVersion = "0.1";
+            PlayerSettings.SetScriptingBackend(id, ScriptingImplementation.IL2CPP);
+            if (target == BuildTarget.tvOS) PlayerSettings.tvOS.requireExtendedGameController = true;   // played with a controller
+            if (target == BuildTarget.iOS) PlayerSettings.iOS.targetOSVersionString = "16.0";
+            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            {
+                scenes = AllScenes.Select(n => $"Assets/BlackBird/Scenes/{n}.unity").ToArray(),
+                locationPathName = path, target = target, targetGroup = group, options = BuildOptions.None,
+            });
+            var s = report.summary;
+            if (s.result == BuildResult.Succeeded) Debug.Log($"[Black Bird] {what}: {path} ({s.totalTime.TotalSeconds:0}s)");
+            else Debug.LogError($"[Black Bird] {what} {s.result}: {s.totalErrors} errors. See the console.");
+        }
+
+        [MenuItem("Black Bird/Apple/Build Mac App", priority = 40)]
+        public static void BuildMac() => Apple(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, Path.Combine(BuildsDir, "macOS", "The Black Bird.app"), "Mac app");
+
+        [MenuItem("Black Bird/Apple/Build Xcode Project for Apple TV", priority = 41)]
+        public static void BuildTV() => Apple(BuildTarget.tvOS, BuildTargetGroup.tvOS, Path.Combine(BuildsDir, "tvOS"), "Apple TV Xcode project");
+
+        [MenuItem("Black Bird/Apple/Build Xcode Project for iPhone and iPad", priority = 42)]
+        public static void BuildIOS() => Apple(BuildTarget.iOS, BuildTargetGroup.iOS, Path.Combine(BuildsDir, "iOS"), "iPhone/iPad Xcode project");
+
         [MenuItem("Black Bird/Publish WebGL to GitHub Pages", priority = 22)]
         public static void Publish()
         {
