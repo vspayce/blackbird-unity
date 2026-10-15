@@ -57,11 +57,25 @@ namespace BlackBird
             }
         }
 
+        // On the web each place is its own download (alley/, hopkins/): a scene that isn't in this one is a page away.
+        static readonly System.Collections.Generic.Dictionary<string, (string key, string folder)> WebPlaces =
+            new System.Collections.Generic.Dictionary<string, (string, string)>
+            {
+                ["BurrittAlley"] = ("alley", "alley"), ["HopkinsNight"] = ("hopkins", "hopkins"), ["HopkinsDay"] = ("hopkins-day", "hopkins"),
+            };
+#if UNITY_WEBGL && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")] static extern void BB_GoTo(string url);
+#endif
+
         public static void Go(string scene)
         {
             // free the mouse first: the next scene captures it again on a click, which browsers allow
-            if (Application.CanStreamedLevelBeLoaded(scene)) { Cursor.lockState = CursorLockMode.None; SceneManager.LoadScene(scene); }
-            else Debug.LogWarning("[Black Bird] Scene not in the build: " + scene);
+            Cursor.lockState = CursorLockMode.None;
+            if (Application.CanStreamedLevelBeLoaded(scene)) { SceneManager.LoadScene(scene); return; }
+#if UNITY_WEBGL && !UNITY_EDITOR
+            if (WebPlaces.TryGetValue(scene, out var w)) { BB_GoTo($"../{w.folder}/?scene={w.key}"); return; }
+#endif
+            Debug.LogWarning("[Black Bird] Scene not in the build: " + scene);
         }
     }
 }

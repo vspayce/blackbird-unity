@@ -57,8 +57,9 @@ namespace BlackBird
             var m = input.Move.sqrMagnitude > 0.01f ? input.Move : autopilot;
             var dir = Quaternion.Euler(0, cameraRig.yaw, 0) * new Vector3(m.x, 0, m.y);
             float push = m.magnitude;
-            float speed = push < 0.05f ? 0 : (push < 0.7f ? Mathf.Lerp(strollSpeed * 0.6f, strollSpeed, push / 0.7f) : Mathf.Lerp(strollSpeed, walkSpeed, (push - 0.7f) / 0.3f));
-            if (input.Hurry && push > 0.5f) speed = hurrySpeed;
+            // the brisk pace is the default (the houses are big); Shift (or the stick clicked) slows him to a walk
+            float top = input.Hurry ? walkSpeed : hurrySpeed;
+            float speed = push < 0.05f ? 0 : (push < 0.7f ? Mathf.Lerp(strollSpeed * 0.6f, strollSpeed, push / 0.7f) : Mathf.Lerp(strollSpeed, top, (push - 0.7f) / 0.3f));
             holmes.Drive(push > 0.05f ? dir.normalized * speed : Vector3.zero, Time.unscaledDeltaTime);   // Focus slows the world, not Holmes
             // (only for a stick pushed mostly forward: steering diagonally while the camera chases walks in circles)
             if (m.y > 0.5f && Mathf.Abs(m.x) < 0.35f && holmes.Speed > 0.3f && Time.unscaledTime - lastLook > 0.8f)
@@ -88,7 +89,7 @@ namespace BlackBird
             if (d > 0.35f)
             {
                 float s = Mathf.Clamp(d * 1.6f, 0.4f, holmes.Speed + 0.6f);
-                if (d > 4f) s = 2.4f;
+                if (d > 4f) s = hurrySpeed + 0.4f;
                 watson.Drive(to / d * s, dt);
             }
             else

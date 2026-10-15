@@ -21,7 +21,7 @@ namespace BlackBird
         public bool Back { get; private set; }
         public bool UsingTouch { get; private set; }
         public float Turn { get; private set; }        // keyboard turning, -1..1 (not counted as "looking")
-        public bool Hurry { get; private set; }         // Shift, or the left stick pushed all the way with the stick clicked
+        public bool Hurry { get; private set; }         // Shift, or the stick clicked: slow to a walk (brisk is the default)
         public bool LookedThisFrame { get; private set; }   // any deliberate camera input (for the auto-follow camera)
         public bool MouseCaptured => Cursor.lockState == CursorLockMode.Locked;
         /// Free the mouse (close-ups, menus) or let a click capture it again.

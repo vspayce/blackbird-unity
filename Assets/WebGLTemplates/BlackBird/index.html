@@ -111,7 +111,14 @@
     // Pick a place on the splash (or come straight in with ?scene=…); the game reads the scene from the URL.
     const names = { alley: 'Burritt Alley', hopkins: 'The Hopkins House, by night', 'hopkins-day': 'The Hopkins House, by day' };
     const splash = document.querySelector('#splash');
+    // Each place is its own download in its own folder (alley/, hopkins/); the root holds only this splash page.
+    const FOLDER = { alley: 'alley', hopkins: 'hopkins', 'hopkins-day': 'hopkins' };
+    const here = location.pathname.replace(/[^/]*$/, '').split('/').filter(Boolean).pop() || '';
+    const inPlayer = Object.values(FOLDER).includes(here);
+    const root = inPlayer ? '../' : './';
+    document.querySelector('#menu').setAttribute('href', root);
     function start(scene) {
+      if (FOLDER[scene] !== here) { location.href = root + FOLDER[scene] + '/?scene=' + scene; return; }
       const u = new URL(location.href); u.searchParams.set('scene', scene); history.replaceState(null, '', u);
       document.querySelector('#where').textContent = 'San Francisco, 1895 · ' + (names[scene] || '');
       loader.style.display = 'flex'; splash.style.opacity = 0; setTimeout(() => splash.remove(), 600);

@@ -43,22 +43,41 @@ namespace BlackBird.EditorTools
             Debug.Log("[Black Bird] Player settings configured.");
         }
 
+        // Each place is its own download (GitHub Pages refuses files over 100 MB, and nobody should wait for the house
+        // to see the alley): WebGL/<group>/ is a complete player; the splash page at the root links into them.
+        public static readonly (string folder, string[] scenes)[] Groups =
+        {
+            ("alley", new[] { "BurrittAlley" }),
+            ("hopkins", new[] { "HopkinsNight", "HopkinsDay" }),   // together, so Tab turns night to day at once
+        };
+
         [MenuItem("Black Bird/Build WebGL", priority = 21)]
         public static void BuildWebGL()
         {
             ConfigurePlayer();
-            // every place the splash page offers, in the order SceneSwitch numbers them
-            var scenes = new[] { "BurrittAlley", "HopkinsNight", "HopkinsDay" }
-                .Select(n => $"Assets/BlackBird/Scenes/{n}.unity").ToArray();
-            var missing = scenes.Where(p => !File.Exists(Path.Combine(ProjectRoot, p))).ToArray();
+            var all = Groups.SelectMany(g => g.scenes).Select(n => $"Assets/BlackBird/Scenes/{n}.unity").ToArray();
+            var missing = all.Where(p => !File.Exists(Path.Combine(ProjectRoot, p))).ToArray();
             if (missing.Length > 0) { Debug.LogError("[Black Bird] Build these scenes first: " + string.Join(", ", missing)); return; }
-            var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+            if (Directory.Exists(WebGLDir)) Directory.Delete(WebGLDir, true);
+            foreach (var (folder, names) in Groups)
             {
-                scenes = scenes, locationPathName = WebGLDir, target = BuildTarget.WebGL, options = BuildOptions.None,
-            });
-            var s = report.summary;
-            if (s.result == BuildResult.Succeeded) Debug.Log($"[Black Bird] WebGL build: {WebGLDir} ({s.totalSize / (1024f * 1024f):0.0} MB, {s.totalTime.TotalSeconds:0}s)");
-            else Debug.LogError($"[Black Bird] WebGL build {s.result}: {s.totalErrors} errors. See the console.");
+                var dir = Path.Combine(WebGLDir, folder);
+                var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = names.Select(n => $"Assets/BlackBird/Scenes/{n}.unity").ToArray(),
+                    locationPathName = dir, target = BuildTarget.WebGL, options = BuildOptions.None,
+                });
+                var s = report.summary;
+                if (s.result != BuildResult.Succeeded) { Debug.LogError($"[Black Bird] WebGL build of {folder} {s.result}: {s.totalErrors} errors. See the console."); return; }
+                var biggest = Directory.GetFiles(Path.Combine(dir, "Build")).Max(f => new FileInfo(f).Length) / (1024f * 1024f);
+                Debug.Log($"[Black Bird] WebGL build: {folder} ({s.totalSize / (1024f * 1024f):0.0} MB, largest file {biggest:0.0} MB, {s.totalTime.TotalSeconds:0}s)");
+                if (biggest > 95) Debug.LogError($"[Black Bird] {folder}: a file of {biggest:0} MB is over what GitHub Pages will take (100 MB).");
+            }
+            // the root: the same splash page (its cards lead into the players) and its pictures
+            File.Copy(Path.Combine(WebGLDir, Groups[0].folder, "index.html"), Path.Combine(WebGLDir, "index.html"), true);
+            var img = Path.Combine(WebGLDir, "img"); Directory.CreateDirectory(img);
+            foreach (var f in Directory.GetFiles(Path.Combine(Application.dataPath, "WebGLTemplates", "BlackBird", "img")))
+                if (!f.EndsWith(".meta")) File.Copy(f, Path.Combine(img, Path.GetFileName(f)), true);
         }
 
         [MenuItem("Black Bird/Publish WebGL to GitHub Pages", priority = 22)]
@@ -83,9 +102,15 @@ namespace BlackBird.EditorTools
             foreach (var d in Directory.GetDirectories(pages)) if (Path.GetFileName(d) != ".git") Directory.Delete(d, true);
             CopyDir(WebGLDir, pages);
             File.WriteAllText(Path.Combine(pages, ".nojekyll"), "");
+            // one commit with no history: each build is ~100 MB and nothing needs the old ones
+            Git(pages, "checkout -q --orphan gh-pages-new");
             Git(pages, "add -A");
             Git(pages, $"commit -q -m \"WebGL build {System.DateTime.Now:yyyy-MM-dd HH:mm}\"", allowFail: true);
-            var push = Git(pages, "push -q -u origin gh-pages", allowFail: true, capture: true);
+            Git(pages, "branch -q -D gh-pages", allowFail: true);
+            Git(pages, "branch -q -m gh-pages");
+            var push = Git(pages, "push -q -f -u origin gh-pages", allowFail: true, capture: true);
+            Git(pages, "reflog expire --expire=now --all", allowFail: true);
+            Git(pages, "gc -q --prune=now", allowFail: true);
             Debug.Log("[Black Bird] Published to gh-pages. " + push +
                       "\nIf this is the first publish: GitHub ▸ Settings ▸ Pages ▸ Source: Deploy from a branch ▸ gh-pages / (root).");
         }

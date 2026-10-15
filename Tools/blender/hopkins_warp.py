@@ -187,6 +187,35 @@ def install(modules, K, G=None):
                 setattr(mod, name, _rigid(f, hang=name in HANG))
     K.LAMPS = Tracked(K.LAMPS); K.COLLIDERS = Tracked(K.COLLIDERS)
     if G is not None: G.BIG_LAMPS = Tracked(G.BIG_LAMPS)
+    _wrap_lifted(K, G)
+
+
+def _wrap_lifted(K, G):
+    """The prototype furnishes the upper floor at floor level and then lifts it (K.lifted). Pieces recorded inside
+    that block were anchored before the lift, so their warp was taken at the ground floor: the upstairs furniture
+    stayed at the old floor height, buried under the raised floor. Move their anchors up with the lift."""
+    orig = K.lifted
+    class lifted(orig):
+        def __enter__(self):
+            self._recs = len(STATE['recs'])
+            self._lists = [(lst, len(lst)) for lst in (K.LAMPS, K.COLLIDERS) + ((G.BIG_LAMPS,) if G is not None else ())]
+            return super().__enter__()
+        def __exit__(self, *exc):
+            r = super().__exit__(*exc)
+            dy = self.dy
+            extra = dy * (Y_SCALE - 1)                     # the y warp at the lifted height, less what was taken at 0
+            for kind, ranges, data in STATE['recs'][self._recs:]:
+                if kind == 'rigid': data.y += extra
+                elif kind == 'point': data.y += dy
+                else: data[0].y += dy
+            for lst, n0 in self._lists:                    # entries already moved with a rigid piece: the same extra
+                for i in range(n0, len(lst)):
+                    if (id(lst), i) in DONE:
+                        it = lst[i]
+                        it[1] += extra
+                        if len(it) == 6: it[4] += extra
+            return r
+    K.lifted = lifted
 
 
 def apply(K, G=None):
