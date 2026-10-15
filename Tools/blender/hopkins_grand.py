@@ -77,6 +77,7 @@ def main():
         spawn=dict(pos=[round(v, 3) for v in W((0.0, K.STREET_Y, K.WALL_Z1 + 1.6))], yaw=math.pi),   # the near sidewalk, at the foot of the front steps
         street=K.STREET_Y, wall=round(W((0, 0, K.WALL_Z1))[2], 3),
         hall=rect(-7, 7, -6, 10), hall_h=round(W((0, K.HALL_H, 0))[1], 3),
+        room_h=round(W((0, K.H, 0))[1], 3),                               # a ground-floor room's ceiling
         house=rect(-15, 15, -14, 14),                                     # indoors, for telling the lamps apart
         palm=[rect(-9, 9, -27.5, -14), rect(-13.5, 13.5, -24, -17)] if G else [],
         tower=dict(top=[round(v, 3) for v in W(hopkins_house.TOWER_TOP)], foot=[round(v, 3) for v in W((9.2, 0, -8.6))]),

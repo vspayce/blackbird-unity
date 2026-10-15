@@ -28,7 +28,7 @@ namespace BlackBird.EditorTools
 
         // gaslight
         static readonly Color Gas = new Color(1f, 0.70f, 0.40f);
-        public static float LampIntensity = 5.5f, LampRange = 12f, BigLampIntensity = 20f, BigLampRange = 30f, OutdoorIntensity = 10f, OutdoorRange = 16f;
+        public static float LampIntensity = 8f, LampRange = 18f, BigLampIntensity = 30f, BigLampRange = 42f, OutdoorIntensity = 10f, OutdoorRange = 16f;   // the house doubled: rooms 16 m across
 
         // Holmes's remarks on the things he can look at (free roam; the chapter's own lines live in the case)
         static readonly Dictionary<string, string> Lines = new Dictionary<string, string>
@@ -110,7 +110,7 @@ namespace BlackBird.EditorTools
             if (data.TryGetValue("palm", out var palmRects)) indoor.AddRange(L(palmRects).Select(r => L(r).Select(F).ToArray()));
             foreach (var p in lampPts)
             {
-                bool big = p.y > 6 && InHall(p, hallBox) || p.y > 18;
+                bool big = p.y > 6 && InHall(p, hallBox) || p.y > RoomH(data) * 2.4f;
                 var web = new Vector3(p.x * Web.SX, p.y, p.z * Web.SZ);
                 bool outdoor = !indoor.Any(r => web.x > r[0] - 0.3f && web.x < r[1] + 0.3f && web.z > r[2] - 0.3f && web.z < r[3] + 0.3f);
                 var l = new GameObject("Gasolier").AddComponent<Light>();
@@ -320,7 +320,7 @@ namespace BlackBird.EditorTools
             roam.rooms = L(data["rooms"]).Select(D).Select(r =>
             {
                 float y = F(r["y"]);
-                var b = Web.Box(F(r["x0"]), y, F(r["z0"]), F(r["x1"]), y + 6.6f, F(r["z1"]));
+                var b = Web.Box(F(r["x0"]), y, F(r["z0"]), F(r["x1"]), y + RoomH(data), F(r["z1"]));
                 return new RoomDef { id = S(r, "id"), name = S(r, "name"), box = b, upper = y > 4 };
             }).ToArray();
             roam.places = L(data["interact"]).Select(D).Select(i =>
@@ -399,7 +399,7 @@ namespace BlackBird.EditorTools
             foreach (var r in L(data["rooms"]).Select(D))
             {
                 float y = F(r["y"]);
-                var b = Web.Box(F(r["x0"]), y + 4.2f, F(r["z0"]), F(r["x1"]), y + 4.2f, F(r["z1"]));
+                var b = Web.Box(F(r["x0"]), y + RoomH(data) * 0.64f, F(r["z0"]), F(r["x1"]), y + RoomH(data) * 0.64f, F(r["z1"]));
                 var l = new GameObject("Day_" + S(r, "id")).AddComponent<Light>();
                 l.transform.SetParent(parent, false); l.transform.position = b.center;
                 l.type = LightType.Point; l.color = new Color(0.93f, 0.95f, 1f);
@@ -407,7 +407,8 @@ namespace BlackBird.EditorTools
                 l.lightmapBakeType = LightmapBakeType.Baked; l.shadows = LightShadows.Soft; l.shapeRadius = 1.2f;
             }
         }
-        const float DayLaylight = 4f, DayRoomFill = 2.2f;
+        const float DayLaylight = 6f, DayRoomFill = 3f;
+        static float RoomH(Dictionary<string, object> data) => data.TryGetValue("room_h", out var v) ? F(v) : 6.6f;
 
         // ---- probes --------------------------------------------------------------------------------------
         static void LightProbes(Dictionary<string, object> data)
@@ -417,21 +418,21 @@ namespace BlackBird.EditorTools
             {
                 float y = F(r["y"]);
                 var b = Web.Box(F(r["x0"]), y, F(r["z0"]), F(r["x1"]), y, F(r["z1"]));
-                for (float x = b.min.x + 0.8f; x <= b.max.x - 0.8f; x += 2f)
-                for (float z = b.min.z + 0.8f; z <= b.max.z - 0.8f; z += 2f)
-                { pts.Add(new Vector3(x, y + 0.7f, z)); pts.Add(new Vector3(x, y + 2.2f, z)); }
+                for (float x = b.min.x + 0.8f; x <= b.max.x - 0.8f; x += 3f)
+                for (float z = b.min.z + 0.8f; z <= b.max.z - 0.8f; z += 3f)
+                { pts.Add(new Vector3(x, y + 0.7f, z)); pts.Add(new Vector3(x, y + 2.2f, z)); pts.Add(new Vector3(x, y + RoomH(data) * 0.6f, z)); }
             }
             // the hall's height, and the grounds (dropped onto whatever is there)
             var h = L(data["hall"]).Select(F).ToArray();
             var hb = Web.Box(h[0], 0, h[2], h[1], 0, h[3]);
             float hh = data.TryGetValue("hall_h", out var hho) ? F(hho) : 14f;
-            for (float x = hb.min.x + 1; x <= hb.max.x - 1; x += 2.5f)
-            for (float z = hb.min.z + 1; z <= hb.max.z - 1; z += 2.5f)
-            for (float y = 3.5f; y <= hh - 2f; y += 2.5f) pts.Add(new Vector3(x, y, z));
-            for (float x = -60; x <= 60; x += 6)
-            for (float z = -60; z <= 60; z += 6)
+            for (float x = hb.min.x + 1; x <= hb.max.x - 1; x += 3.5f)
+            for (float z = hb.min.z + 1; z <= hb.max.z - 1; z += 3.5f)
+            for (float y = 3.5f; y <= hh - 2f; y += 3f) pts.Add(new Vector3(x, y, z));
+            for (float x = -96; x <= 96; x += 8)
+            for (float z = -96; z <= 96; z += 8)
             {
-                if (Physics.Raycast(new Vector3(x, 60, z), Vector3.down, out var hit, 120))
+                if (Physics.Raycast(new Vector3(x, 90, z), Vector3.down, out var hit, 180))
                 { pts.Add(hit.point + Vector3.up * 0.8f); pts.Add(hit.point + Vector3.up * 2.6f); }
             }
             var g = new GameObject("LightProbes").AddComponent<LightProbeGroup>();
@@ -452,7 +453,7 @@ namespace BlackBird.EditorTools
             foreach (var r in L(data["rooms"]).Select(D))
             {
                 float y = F(r["y"]);
-                Probe("Room_" + S(r, "id"), Web.Box(F(r["x0"]), y + 0.1f, F(r["z0"]), F(r["x1"]), y + 6.4f, F(r["z1"])));
+                Probe("Room_" + S(r, "id"), Web.Box(F(r["x0"]), y + 0.1f, F(r["z0"]), F(r["x1"]), y + RoomH(data) - 0.2f, F(r["z1"])));
             }
             var h = L(data["hall"]).Select(F).ToArray();
             float hh = data.TryGetValue("hall_h", out var hho) ? F(hho) : 14f;
@@ -460,8 +461,8 @@ namespace BlackBird.EditorTools
             if (data.TryGetValue("grand", out var g) && g is bool gb && gb)
             {
                 var pr = L(data["palm"]).Select(r => L(r).Select(F).ToArray()).ToArray();
-                if (pr.Length > 0) Probe("PalmHouse", Web.Box(pr[0][0], 0.1f, pr[0][2], pr[0][1], 17f, pr[0][3]));
-                if (pr.Length > 1) Probe("PalmHouseTransept", Web.Box(pr[1][0], 0.1f, pr[1][2], pr[1][1], 11f, pr[1][3]));
+                if (pr.Length > 0) Probe("PalmHouse", Web.Box(pr[0][0], 0.1f, pr[0][2], pr[0][1], 23f, pr[0][3]));
+                if (pr.Length > 1) Probe("PalmHouseTransept", Web.Box(pr[1][0], 0.1f, pr[1][2], pr[1][1], 15f, pr[1][3]));
             }
             var outside = new GameObject("Outside").AddComponent<ReflectionProbe>();
             outside.transform.SetParent(parent, false); outside.transform.position = Web.W(0, 4, F(data["wall"]) + 4f);

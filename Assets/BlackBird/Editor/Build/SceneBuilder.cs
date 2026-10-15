@@ -275,7 +275,7 @@ namespace BlackBird.EditorTools
             if (player)
             {
                 var cc = root.AddComponent<CharacterController>();
-                cc.height = 1.8f; cc.radius = 0.28f; cc.center = new Vector3(0, 0.92f, 0); cc.stepOffset = 0.25f; cc.skinWidth = 0.03f;
+                cc.height = 1.8f; cc.radius = 0.28f; cc.center = new Vector3(0, 0.92f, 0); cc.stepOffset = 0.36f;   // the doubled Hopkins house's stairs rise 0.32 cc.skinWidth = 0.03f;
             }
             else
             {

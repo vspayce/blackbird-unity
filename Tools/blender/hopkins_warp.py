@@ -5,9 +5,9 @@
 # and z, that stretches the middles of rooms and slides the walls apart. Bands about each wall line only translate, so
 # a wall keeps its thickness and whatever hangs on it stays on it.
 #
-#   across (x): the hall's half-width 7 -> 11, the side rooms 8 -> 10 wide, the house 30 -> 44 m
-#   deep (z):   the hall 16 -> 28 m, the vestibule 4 -> 6, the rooms behind 8 -> 10, the house 28 -> 44 m
-#   up (y):     everything above the terrace 1.2x (rooms 5.5 -> 6.6 m, the gallery 6 -> 7.2, the tower 22 -> 26.4)
+#   across (x): doubled: the hall's half-width 7 -> 14, the side rooms 8 -> 16 wide, the house 30 -> 60 m
+#   deep (z):   doubled: the hall 16 -> 32 m, the vestibule 4 -> 8, the rooms behind 8 -> 16, the house 28 -> 56 m
+#   up (y):     everything above the terrace 1.6x (rooms 5.5 -> 8.8 m, the gallery 6 -> 9.6, the tower 22 -> 35.2)
 #
 # Furniture, paintings, lamps and the like are built inside a "rigid" context: they move with the warp (taken at their
 # foot, or at the top for things that hang) but keep their size. Cylinders stay round (only their axis is warped) and
@@ -16,10 +16,10 @@ import math
 from mathutils import Vector
 import setkit
 
-X_BREAKS = [(0.0, 0.0), (5.8, 9.8), (8.2, 12.2), (13.8, 19.8), (16.2, 22.2)]           # |x|: orig -> new
-Z_BREAKS = [(-15.2, -17.2), (-12.8, -14.8), (-7.2, -7.2), (-4.8, -4.8), (0.8, 6.8), (3.2, 9.2),
-            (8.8, 20.8), (11.2, 23.2), (12.8, 26.8), (15.2, 29.2)]
-Y_SCALE = 1.2
+X_BREAKS = [(0.0, 0.0), (5.8, 12.8), (8.2, 15.2), (13.8, 28.8), (16.2, 31.2)]          # |x|: orig -> new
+Z_BREAKS = [(-15.2, -23.2), (-12.8, -20.8), (-7.2, -7.2), (-4.8, -4.8), (0.8, 8.8), (3.2, 11.2),
+            (8.8, 24.8), (11.2, 27.2), (12.8, 32.8), (15.2, 35.2)]
+Y_SCALE = 1.6
 
 
 def _pw(breaks):
