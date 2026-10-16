@@ -46,7 +46,7 @@ namespace BlackBird
             m = m.ToLowerInvariant();
             if (m.Contains("rug") || m.Contains("carpet") || m.Contains("runner") || m.Contains("velvet")) return "carpet";
             if (m.Contains("parquet") || m.Contains("wood") || m.Contains("walnut") || m.Contains("oak") || m.Contains("board") || m.Contains("plank")
-                || m.Contains("floor") && !m.Contains("tile") || m.Contains("stair") || m.Contains("ebony") || m.Contains("rosewood") || m.Contains("deck")) return "wood";
+                || m.Contains("floor") && !m.Contains("tile") || m.Contains("stair") || m.Contains("plaster") || m.Contains("ebony") || m.Contains("rosewood") || m.Contains("deck")) return "wood";
             if (m.Contains("grass") || m.Contains("lawn") || m.Contains("gravel") || m.Contains("skirt") || m.Contains("hedge") || m.Contains("dirt") || m.Contains("mud")) return "grass";
             return "concrete";
         }
