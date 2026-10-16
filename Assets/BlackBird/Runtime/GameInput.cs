@@ -19,6 +19,8 @@ namespace BlackBird
         public bool Act { get; private set; }
         public bool Focus { get; private set; }
         public bool Back { get; private set; }
+        public bool Book { get; private set; }          // the Notebook: B, or the controller's menu button
+        public bool Palace { get; private set; }        // the Mind Palace: M, or Y
         public bool UsingTouch { get; private set; }
         public float Turn { get; private set; }        // keyboard turning, -1..1 (not counted as "looking")
         public bool Hurry { get; private set; }         // Shift, or the stick clicked: slow to a walk (brisk is the default)
@@ -33,7 +35,7 @@ namespace BlackBird
         public Vector2 StickKnob { get; private set; }
         public float StickRadius => Screen.dpi > 0 ? Screen.dpi * 0.45f : 80f;
 
-        InputAction move, turn, look, act, focus, back, hurry;
+        InputAction move, turn, look, act, focus, back, hurry, book, palace;
         int stickFinger = -1;
         readonly HashSet<int> lookFingers = new HashSet<int>();
         readonly HashSet<int> uiFingers = new HashSet<int>();
@@ -61,13 +63,17 @@ namespace BlackBird
             focus.AddBinding("<Keyboard>/f"); focus.AddBinding("<Gamepad>/buttonWest");
             back = new InputAction("back", InputActionType.Button);
             back.AddBinding("<Keyboard>/escape"); back.AddBinding("<Keyboard>/backspace"); back.AddBinding("<Gamepad>/buttonEast");
-            foreach (var a in new[] { move, turn, look, act, focus, back, hurry }) a.Enable();
+            book = new InputAction("book", InputActionType.Button);
+            book.AddBinding("<Keyboard>/b"); book.AddBinding("<Gamepad>/start");
+            palace = new InputAction("palace", InputActionType.Button);
+            palace.AddBinding("<Keyboard>/m"); palace.AddBinding("<Gamepad>/buttonNorth");
+            foreach (var a in new[] { move, turn, look, act, focus, back, hurry, book, palace }) a.Enable();
             EnhancedTouchSupport.Enable();
         }
 
         void OnDestroy()
         {
-            foreach (var a in new[] { move, turn, look, act, focus, back, hurry }) a?.Dispose();
+            foreach (var a in new[] { move, turn, look, act, focus, back, hurry, book, palace }) a?.Dispose();
             Cursor.lockState = CursorLockMode.None;
             if (EnhancedTouchSupport.enabled) EnhancedTouchSupport.Disable();
         }
@@ -77,6 +83,9 @@ namespace BlackBird
         public void PressAct() => uiAct = true;
         public void PressFocus() => uiFocus = true;
         public void PressBack() => uiBack = true;
+        bool uiBook, uiPalace;
+        public void PressBook() => uiBook = true;
+        public void PressPalace() => uiPalace = true;
 
         void Update()
         {
@@ -147,7 +156,9 @@ namespace BlackBird
             Act = act.WasPressedThisFrame() || uiAct;
             Focus = focus.WasPressedThisFrame() || uiFocus;
             Back = back.WasPressedThisFrame() || uiBack;
-            uiAct = uiFocus = uiBack = false;
+            Book = book.WasPressedThisFrame() || uiBook;
+            Palace = palace.WasPressedThisFrame() || uiPalace;
+            uiAct = uiFocus = uiBack = uiBook = uiPalace = false;
         }
 
         public Vector2 DefaultStickCenter()

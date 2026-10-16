@@ -19,7 +19,7 @@ namespace BlackBird
         Text objective, captionWho, captionLine, slipTitle, slipText, actLabel, counter, hint;
         CanvasGroup caption, slip, actGroup, focusGroup, stickGroup, backGroup, rotate;
         Image meterFill, stickBase, stickKnob, focusIcon;
-        RectTransform barTop, barBottom;
+        RectTransform barTop, barBottom, caseButtons;
         readonly List<Text> reads = new List<Text>();
         readonly List<(Button b, Text t, Vector3 world, bool focusOnly, Func<bool> found)> marks = new List<(Button, Text, Vector3, bool, Func<bool>)>();
         float slipTimer, letterbox, letterboxTarget;
@@ -111,6 +111,19 @@ namespace BlackBird
             stickKnob = Img(st, "Knob", circle, new Color(1, 1, 1, 0.45f)); stickKnob.raycastTarget = false;
             foreach (var i in new[] { stickBase, stickKnob }) { i.rectTransform.anchorMin = i.rectTransform.anchorMax = Vector2.zero; }
 
+            // the Notebook and the Mind Palace, top right under the counter
+            caseButtons = Rect("CaseButtons", safe); Place(caseButtons, new Vector2(1, 1), new Vector2(-28, -62), new Vector2(360, 44));
+            var hl = caseButtons.gameObject.AddComponent<HorizontalLayoutGroup>(); hl.spacing = 10; hl.childAlignment = TextAnchor.UpperRight;
+            hl.childControlWidth = hl.childControlHeight = true; hl.childForceExpandWidth = false; hl.childForceExpandHeight = true;
+            foreach (var (label, press) in new (string, Action)[] { ("Notebook", () => GameInput.I.PressBook()), ("Mind Palace", () => GameInput.I.PressPalace()) })
+            {
+                var bp = Panel(caseButtons, label, new Color(0.05f, 0.06f, 0.07f, 0.72f));
+                bp.gameObject.AddComponent<LayoutElement>().preferredWidth = label.Length * 11 + 30;
+                bp.gameObject.AddComponent<Button>().onClick.AddListener(() => press());
+                var lt = Label(bp, "Label", serif, 19, TextAnchor.MiddleCenter, Ink); lt.text = label; Stretch(lt.rectTransform, 6, 4, 6, 4);
+            }
+            caseButtons.gameObject.SetActive(false);
+
             hint = Label(safe, "Hint", type, 16, TextAnchor.LowerLeft, new Color(Ink.r, Ink.g, Ink.b, 0.45f));
             Place(hint.rectTransform, new Vector2(0, 0), new Vector2(28, 12), new Vector2(900, 30)); hint.rectTransform.pivot = Vector2.zero;
             hint.text = "W/S walk · A/D turn · Shift slow down · click to look with the mouse (Esc frees it) · E examine · F Focus";
@@ -124,6 +137,12 @@ namespace BlackBird
         // ---- public API -------------------------------------------------------------------------
         public void SetObjective(string title, string line) { objective.text = $"<size=20>{title.ToUpperInvariant()}</size>\n{line}"; }
         public void SetCounter(string s) => counter.text = s;
+        /// The Notebook and Mind Palace buttons, and their keys in the hint, for chapters with a case.
+        public void CaseControls(bool on)
+        {
+            caseButtons.gameObject.SetActive(on);
+            hint.text = "W/S walk · A/D turn · Shift slow down · click to look with the mouse (Esc frees it) · E examine · F Focus" + (on ? " · B notebook · M Mind Palace" : "");
+        }
 
         // A line that fades by itself after it's been read, without holding the game.
         float narrateTimer;
@@ -150,7 +169,9 @@ namespace BlackBird
             var d = onCaptionDone; onCaptionDone = null; d?.Invoke();
         }
 
-        public void ClueSlip(Clue c) { slipTitle.text = "New clue · " + c.title; slipText.text = c.text; slipTimer = 6f; Sound.Clue(); }
+        public void ClueSlip(Clue c) => ClueSlip(c.title, c.text, "New clue");
+        public void ClueSlip(string title, string text, string kind)
+        { slipTitle.text = kind + " · " + title; slipText.text = text; slipTimer = 6f; Sound.Clue(); }
 
         public void Context(string label, bool touch)
         {

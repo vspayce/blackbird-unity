@@ -1,7 +1,9 @@
-// Chapter I test: walk Burritt Alley with Watson, use Focus, examine the scene and the body.
-// (Notebook, interrogation and the Mind Palace stay in the web prototype for now.)
+// Chapter I, Burritt Alley, the whole case: walk the alley with Watson, use Focus, examine the scene and the body,
+// question Polhaus and Kelly (and read their lies), keep the Notebook, draw the threads in the Mind Palace and name
+// the killer. The story is the web game's (Resources/Cases/archer.json); the alley and its people are this scene's.
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace BlackBird
@@ -9,36 +11,60 @@ namespace BlackBird
     public class Game : MonoBehaviour
     {
         public Walker holmes, watson;
-        public Walker[] people;                 // same order as Chapter1.People
+        public Walker[] people;                 // same order as Chapter1.People (polhaus, kelly)
         public CameraRig cameraRig;
         public Light pocketLamp;
         public Transform[] hiddenBySpot;        // optional: the HiddenDetail object for each spot id (heel, scent, webley)
         public string[] hiddenSpotIds;
+        public string caseId = "archer";
 
         Explorer ex;
+        CaseData data;
+        CaseState state;
+        CaseUI ui;
+        string[] personIds;
 
-        enum Mode { Explore, Closeup, Talk, Done }
+        enum Mode { Explore, Closeup, Screen }
         Mode mode;
-        readonly HashSet<string> found = new HashSet<string>();
-        readonly Queue<(string who, string line)> lines = new Queue<(string, string)>();
-        Action afterLines;
         string contextLabel; Action contextAct;
 
         void Start()
         {
+            data = CaseData.Load(caseId);
+            state = new CaseState(data);
+            bool resumed = state.Load();
+            ui = gameObject.GetComponent<CaseUI>() ?? gameObject.AddComponent<CaseUI>();
+            ui.Bind(state);
+            ui.onGive = Give;
+            ui.onClosed = () => { mode = Mode.Explore; Refresh(); };
+            ui.onSolved = () => { Refresh(); Hud.I.Narrate("Holmes", "Come, Watson. Back to the Palace for an hour's sleep."); };
+            ui.onTalking = Talking;
+            ui.focusOn = () => Focus.I && Focus.I.On;
+            ui.toggleFocus = () => Focus.I?.Toggle();
+
             ex = GetComponent<Explorer>();
             if (!ex) { ex = gameObject.AddComponent<Explorer>(); ex.holmes = holmes; ex.watson = watson; ex.cameraRig = cameraRig; }
             ex.Place(Chapter1.Start, Quaternion.LookRotation(Web.W(0, -1) - Web.W(0, 0)).eulerAngles.y);
-            for (int i = 0; i < people.Length && i < Chapter1.People.Length; i++)
+            personIds = Chapter1.People.Select(p => p.id).ToArray();
+            for (int i = 0; i < people.Length && i < personIds.Length; i++)
             {
-                var d = Chapter1.People[i];
-                people[i].transform.position = d.pos;
-                var f = d.face - d.pos; f.y = 0;
+                var d = data.people[personIds[i]];
+                people[i].transform.position = Web.W(d.pos[0], d.pos[1]);
+                var f = Web.W(d.face[0], d.face[1]) - people[i].transform.position; f.y = 0;
                 people[i].transform.rotation = Quaternion.LookRotation(f);
             }
-            Hud.I.SetObjective(Chapter1.Title, "Examine the scene. Use Focus to see what the police missed.");
-            UpdateCounter();
-            Narrate("Holmes", Chapter1.Opening);
+            if (hiddenSpotIds != null)
+                for (int i = 0; i < hiddenSpotIds.Length; i++)
+                    if (state.Has(hiddenSpotIds[i]) && hiddenBySpot[i] && hiddenBySpot[i].TryGetComponent<HiddenDetail>(out var h)) h.found = true;
+            Hud.I.CaseControls(true);
+            Refresh();
+            Hud.I.Narrate("Holmes", resumed && state.clues.Count > data.startClues.Length ? "Where were we, Watson? Ah yes." : data.opening);
+        }
+
+        void Refresh()
+        {
+            Hud.I.SetObjective(data.title, state.Objective());
+            Hud.I.SetCounter($"Clues {state.clues.Count} / {data.clues.Count}");
         }
 
         void Update()
@@ -47,18 +73,16 @@ namespace BlackBird
             var input = GameInput.I;
             Hud.I.SetTouchMode(input.UsingTouch);
 
-            if (input.Focus && mode != Mode.Talk) Focus.I.Toggle();
-            if (mode == Mode.Talk)
+            if (ui.Open || mode == Mode.Screen)
             {
-                GameInput.I.allowMouseCapture = false;
-                if (input.Act || input.Back) Hud.I.AdvanceCaption();
-                holmes.Idle(dt);
-                Follow(dt);
-                People(dt);
+                holmes.Idle(dt); Follow(dt); People(dt);
                 Hud.I.Context(null, input.UsingTouch);
-                cameraRig.AddLook(input.Look * 0.5f);
+                Reads();
                 return;
             }
+            if (input.Focus) Focus.I.Toggle();
+            if (input.Book) { ui.OpenBook(); return; }
+            if (input.Palace) { ui.OpenPalace(); return; }
 
             if (mode == Mode.Closeup)
             {
@@ -78,7 +102,6 @@ namespace BlackBird
             Reads();
         }
 
-        // ---- Watson keeps to Holmes's left shoulder ------------------------------------------------
         void Follow(float dt) => ex.Follow(dt, mode == Mode.Closeup ? Chapter1.Closeup.Look : (Vector3?)null);
 
         void People(float dt)
@@ -89,90 +112,97 @@ namespace BlackBird
                 p.Idle(dt);
                 float d = Vector3.Distance(p.transform.position, holmes.transform.position);
                 p.lookTarget = d < 5f ? holmes.transform.Find("LookAt") ?? holmes.transform : null;
-                var faceTo = d < 2.6f ? holmes.transform.position : Chapter1.People[i].face;
+                var pd = data.people[personIds[i]];
+                var faceTo = d < 2.6f ? holmes.transform.position : Web.W(pd.face[0], pd.face[1]);
                 p.FaceTowards(faceTo, dt * 0.6f);
             }
             holmes.lookPoint = null;
         }
 
-        // ---- what Holmes could do here ------------------------------------------------------------
+        // the speaker gestures while their line is up
+        void Talking(string who, bool on)
+        {
+            foreach (var w in All()) w.SetTalking(false);
+            if (!on || who == null) return;
+            if (who == "Holmes") { holmes.SetTalking(true); return; }
+            if (who == "Watson" && watson) { watson.SetTalking(true); return; }
+            for (int i = 0; i < people.Length; i++)
+                if (data.people[personIds[i]].name.Contains(who)) people[i].SetTalking(true);
+        }
+        IEnumerable<Walker> All() { yield return holmes; if (watson) yield return watson; foreach (var p in people) yield return p; }
+
+        // ---- what Holmes could do here ----
         void FindContext()
         {
             contextLabel = null; contextAct = null;
             var hp = holmes.transform.position;
             float best = float.MaxValue;
             bool focusing = Focus.I.Amount > 0.3f;
-
-            foreach (var s in Chapter1.Spots)
+            foreach (var s in data.spots)
             {
-                if (s.clue != null && found.Contains(s.clue) && !s.closeup) continue;
+                if (s.clue != null && state.Has(s.clue)) continue;
                 if (s.focus && !focusing) continue;
-                var flat = s.pos - hp; flat.y = 0;
+                var flat = Web.W(s.pos[0], s.pos[1], s.pos[2]) - hp; flat.y = 0;
                 float d = flat.magnitude;
                 if (d > s.r || d >= best) continue;
-                best = d;
-                var spot = s;
-                contextLabel = s.label;
-                contextAct = () => UseSpot(spot);
+                best = d; var spot = s;
+                contextLabel = s.label; contextAct = () => UseSpot(spot);
+                holmes.lookPoint = Web.W(s.pos[0], s.pos[1], s.pos[2]);
             }
             for (int i = 0; i < people.Length; i++)
             {
                 float d = Vector3.Distance(people[i].transform.position, hp);
                 if (d > 2.2f || d >= best) continue;
-                best = d; int k = i;
-                contextLabel = "Talk to " + Chapter1.People[i].name;
-                contextAct = () => { holmes.lookTarget = null; Talk(Chapter1.Hello[k]); };
+                best = d; var id = personIds[i];
+                contextLabel = "Talk to " + data.people[id].name;
+                contextAct = () => { mode = Mode.Screen; Hud.I.Narrate("", ""); ui.Talk(id); };
             }
             var toW = watson ? watson.transform.position - hp : Vector3.zero; toW.y = 0;
             if (watson && toW.magnitude < 1.8f && contextLabel == null && holmes.Speed < 0.2f && Vector3.Angle(holmes.transform.forward, toW) < 50f)
             {
                 contextLabel = "Talk to Dr. Watson";
-                contextAct = () => Talk(Chapter1.WatsonHello);
+                contextAct = () => { mode = Mode.Screen; ui.Talk("watson"); };
             }
-            // Holmes glances at what he could examine
-            if (contextLabel != null && best < 3f)
-                foreach (var s in Chapter1.Spots) if (s.label == contextLabel) holmes.lookPoint = s.pos;
         }
 
-        void UseSpot(SpotDef s)
+        void UseSpot(SpotInfo s)
         {
             if (s.closeup) { EnterCloseup(); return; }
-            if (s.say != null) { Narrate("Holmes", s.say); return; }
-            if (s.clue != null) Collect(s.clue, true);
+            if (s.say != null) { Hud.I.Narrate("Holmes", s.say); return; }
+            if (s.clue != null) Give(s.clue);
         }
 
-        void Collect(string id, bool speak)
+        // a clue found or a testimony heard
+        void Give(string id)
         {
-            if (!found.Add(id)) return;
-            var c = Chapter1.Find(id);
-            Hud.I.ClueSlip(c);
-            UpdateCounter();
+            if (!state.AddClue(id)) return;
+            var c = data.clues[id];
+            Hud.I.ClueSlip(c.title, c.text, c.kind == "testimony" ? "Testimony" : "New clue");
             if (hiddenSpotIds != null)
                 for (int i = 0; i < hiddenSpotIds.Length; i++)
                     if (hiddenSpotIds[i] == id && hiddenBySpot[i] && hiddenBySpot[i].TryGetComponent<HiddenDetail>(out var h)) h.found = true;
-            if (found.Count == Chapter1.Clues.Length)
-                Talk(new[] { ("Holmes", "That is everything the alley has to tell us, Watson."), ("Watson", "And what does it tell you?"), ("Holmes", "That Miles Archer walked up to someone he trusted, and they shot him. The rest is for the Mind Palace.") },
-                    () => Hud.I.SetObjective(Chapter1.Title, "Every clue found. (The Mind Palace comes next.)"));
+            Refresh();
+            if (state.clues.Count == data.clues.Count)
+                Hud.I.Narrate("Holmes", "That is everything the alley has to tell us, Watson. The rest is for the Mind Palace.");
         }
 
-        void UpdateCounter() => Hud.I.SetCounter($"Clues {found.Count} / {Chapter1.Clues.Length}");
-
-        // ---- the close-up on Archer ---------------------------------------------------------------
+        // ---- the close-up on Archer ----
         void EnterCloseup()
         {
             mode = Mode.Closeup;
             GameInput.I.allowMouseCapture = false;   // the clues are clicked
-            cameraRig.Shot(Chapter1.Closeup.Cam, Chapter1.Closeup.Look);
+            var cu = data.closeup;
+            cameraRig.Shot(Web.W(cu.cam[0], cu.cam[1], cu.cam[2]), Web.W(cu.look[0], cu.look[1], cu.look[2]));
             Hud.I.Letterbox(true);
             Hud.I.BackButton(true);
             if (pocketLamp) pocketLamp.enabled = true;
-            foreach (var m in Chapter1.Closeup.Marks)
+            foreach (var m in cu.spots)
             {
                 var mark = m;
-                Hud.I.AddMark(mark.pos, mark.label, mark.focus, () => found.Contains(mark.clue), () =>
+                Hud.I.AddMark(Web.W(m.pos[0], m.pos[1], m.pos[2]), mark.label, mark.focus, () => state.Has(mark.clue), () =>
                 {
-                    if (mark.focus && Focus.I.Amount < 0.3f && !found.Contains(mark.clue)) return;
-                    Collect(mark.clue, true);
+                    if (mark.focus && Focus.I.Amount < 0.3f && !state.Has(mark.clue)) return;
+                    Give(mark.clue);
                 });
             }
         }
@@ -187,36 +217,7 @@ namespace BlackBird
             if (pocketLamp) pocketLamp.enabled = false;
         }
 
-        // ---- captions -----------------------------------------------------------------------------
-        // Holmes thinking aloud: a caption that fades on its own and never stops you walking.
-        void Narrate(string who, string line) => Hud.I.Narrate(who, line);
-
-        // A conversation: the scene holds until you've read each line (E, Enter, click or tap).
-        void Talk(IEnumerable<(string who, string line)> l, Action then = null)
-        {
-            foreach (var x in l) lines.Enqueue(x);
-            afterLines = then;
-            if (mode != Mode.Talk) { prev = mode; mode = Mode.Talk; Hud.I.Letterbox(true); NextLine(); }
-        }
-        Mode prev;
-        void NextLine()
-        {
-            if (lines.Count == 0)
-            {
-                mode = prev;
-                Hud.I.Letterbox(mode == Mode.Closeup);
-                var a = afterLines; afterLines = null; a?.Invoke();
-                return;
-            }
-            var (who, line) = lines.Dequeue();
-            var speaker = who == "Watson" ? watson : null;
-            for (int i = 0; i < Chapter1.People.Length; i++) if (Chapter1.People[i].name.Contains(who)) speaker = people[i];
-            foreach (var w in AllWalkers()) w.SetTalking(w == speaker || (who == "Holmes" && w == holmes));
-            Hud.I.Say(who, line, () => { foreach (var w in AllWalkers()) w.SetTalking(false); NextLine(); });
-        }
-        IEnumerable<Walker> AllWalkers() { yield return holmes; if (watson) yield return watson; foreach (var p in people) yield return p; }
-
-        // ---- Focus reads ---------------------------------------------------------------------------
+        // ---- Focus reads: noticed ones go into the Notebook ----
         readonly List<(Vector3, string)> readBuf = new List<(Vector3, string)>();
         void Reads()
         {
@@ -224,15 +225,20 @@ namespace BlackBird
             float k = Focus.I.Amount;
             if (k > 0.02f)
             {
-                for (int i = 0; i < people.Length; i++) AddReads(people[i].transform, Chapter1.People[i].reads);
-                if (watson) AddReads(watson.transform, Chapter1.WatsonReads);
+                for (int i = 0; i < people.Length; i++) AddReads(people[i].transform, personIds[i]);
+                if (watson) AddReads(watson.transform, "watson");
             }
             Hud.I.ShowReads(readBuf, k);
         }
-        void AddReads(Transform t, string[] r)
+        void AddReads(Transform t, string id)
         {
+            if (!data.reads.TryGetValue(id, out var r)) return;
             if (Vector3.Distance(t.position, holmes.transform.position) > 9f) return;
-            for (int j = 0; j < r.Length; j++) readBuf.Add((t.position + Vector3.up * (1.95f - j * 0.22f) + Camera.main.transform.right * 0.35f, r[j]));
+            for (int j = 0; j < r.Length; j++)
+            {
+                readBuf.Add((t.position + Vector3.up * (1.95f - j * 0.22f) + Camera.main.transform.right * 0.35f, r[j]));
+                if (Focus.I.Amount > 0.8f) state.AddRead(id + ":" + j);
+            }
         }
     }
 }
