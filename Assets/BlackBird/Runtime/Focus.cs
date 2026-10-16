@@ -24,12 +24,15 @@ namespace BlackBird
         void OnDisable() { Time.timeScale = 1f; }
 
         public void Toggle() { if (On) On = false; else if (Meter > 0.15f) On = true; }
-        public void ForceOff() => On = false;
+        public void ForceOff() { On = false; forced = false; }
+        /// Focus held on for a scene (the portrait, the fight) without spending the meter.
+        public void ForceOn() { On = true; forced = true; }
+        bool forced;
 
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
-            if (On) { Meter -= dt / capacity; if (Meter <= 0) { Meter = 0; On = false; } }
+            if (On && !forced) { Meter -= dt / capacity; if (Meter <= 0) { Meter = 0; On = false; } }
             else Meter = Mathf.Min(1f, Meter + dt * refillRate / capacity);
             Amount = Mathf.MoveTowards(Amount, On ? 1f : 0f, dt * (On ? 2.2f : 1.6f));
             float k = Mathf.SmoothStep(0, 1, Amount);

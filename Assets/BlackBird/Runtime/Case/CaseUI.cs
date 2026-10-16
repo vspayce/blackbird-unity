@@ -80,12 +80,12 @@ namespace BlackBird
         }
     }
 
-    public class CaseUI : MonoBehaviour
+    public partial class CaseUI : MonoBehaviour
     {
         public static CaseUI I { get; private set; }
         public bool Open => mode != Screen.None;
 
-        enum Screen { None, Talk, Book, Palace, Conclude, End }
+        enum Screen { None, Talk, Book, Palace, Conclude, End, Sheet }
         Screen mode;
         RectTransform root, talkPanel, choices, book, palace, endCard;
         Text who, line, tell, thought;

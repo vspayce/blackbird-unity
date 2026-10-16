@@ -49,9 +49,35 @@ namespace BlackBird
 
     public class SpotInfo
     {
-        public string id, label, clue, say, after, before, early, worldId, @event;
+        public string id, label, clue, say, after, before, early, worldId, @event, place;
+        public string[] clues;
         public float[] pos; public float r = 2f;
         public bool focus, closeup;
+        public string[] AllClues() => clues != null && clues.Length > 0 ? clues : clue != null ? new[] { clue } : new string[0];
+    }
+
+    // the character portrait (Chapter II): markers on the person, then Holmes's reading completed line by line
+    public class PortraitSpot { public float[] local; public string clue, label; }
+    public class ProfileLine { public string lead, why; public string[] options; public int answer; }
+    public class PortraitDef { public string @event, gives; public List<PortraitSpot> spots; public List<ProfileLine> lines; }
+
+    // fight prediction: three moves in order; a wrong one breaks the plan, with the reason
+    public class FightDef
+    {
+        public string who, title, prompt;
+        public List<(string id, string label)> moves;
+        public string[] plan;
+        public Dictionary<string, string> why;
+        public List<Line> success;
+    }
+
+    // a story event: cards (lines), or a reconstruction (fragments put back in order), then waking somewhere
+    public class EventDef
+    {
+        public string type, title, prompt, gives;
+        public List<string> before = new List<string>(), wrong = new List<string>(), fragments = new List<string>();
+        public List<Line> after = new List<Line>(), lines = new List<Line>();
+        public float[] wake;
     }
 
     public class CloseupInfo { public float[] cam, look; public List<SpotInfo> spots; }
@@ -78,6 +104,9 @@ namespace BlackBird
         public readonly List<SpotInfo> spots = new List<SpotInfo>();
         public CloseupInfo closeup;
         public ConclusionDef conclusion;
+        public readonly Dictionary<string, PortraitDef> portraits = new Dictionary<string, PortraitDef>();
+        public readonly Dictionary<string, FightDef> fights = new Dictionary<string, FightDef>();
+        public readonly Dictionary<string, EventDef> events = new Dictionary<string, EventDef>();
 
         public static readonly string[] Order = { "archer", "cairo", "brigid", "gutman", "gunsel" };
 
@@ -151,6 +180,36 @@ namespace BlackBird
                     topics = ((List<object>)t["topics"]).Select(o => Topic((Dictionary<string, object>)o)).ToList(),
                 };
             }
+            foreach (var kv in D(d, "PORTRAITS") ?? new Dictionary<string, object>())
+            {
+                var p = (Dictionary<string, object>)kv.Value;
+                portraits[kv.Key] = new PortraitDef
+                {
+                    @event = S(p, "event"), gives = S(p, "gives"),
+                    spots = ((List<object>)p["spots"]).Select(o => { var x = (Dictionary<string, object>)o; return new PortraitSpot { local = Fs(x, "local"), clue = S(x, "clue"), label = S(x, "label") }; }).ToList(),
+                    lines = ((List<object>)p["lines"]).Select(o => { var x = (Dictionary<string, object>)o; return new ProfileLine { lead = S(x, "lead"), why = S(x, "why"), options = Strs(x, "options"), answer = I(x, "answer") }; }).ToList(),
+                };
+            }
+            foreach (var kv in D(d, "FIGHTS") ?? new Dictionary<string, object>())
+            {
+                var f = (Dictionary<string, object>)kv.Value;
+                fights[kv.Key] = new FightDef
+                {
+                    who = S(f, "who"), title = S(f, "title"), prompt = S(f, "prompt"), plan = Strs(f, "plan"), success = Lines(f, "success"),
+                    moves = ((List<object>)f["moves"]).Select(o => { var x = (Dictionary<string, object>)o; return (S(x, "id"), S(x, "label")); }).ToList(),
+                    why = (D(f, "why") ?? new Dictionary<string, object>()).ToDictionary(k => k.Key, k => k.Value as string),
+                };
+            }
+            foreach (var kv in D(d, "EVENTS") ?? new Dictionary<string, object>())
+            {
+                var e = (Dictionary<string, object>)kv.Value;
+                List<string> SL(string k) => e.TryGetValue(k, out var v) && v is List<object> l ? l.OfType<string>().ToList() : new List<string>();
+                events[kv.Key] = new EventDef
+                {
+                    type = S(e, "type"), title = S(e, "title"), prompt = S(e, "prompt"), gives = S(e, "gives"), wake = Fs(e, "wake"),
+                    before = SL("before"), wrong = SL("wrong"), fragments = SL("fragments"), after = Lines(e, "after"), lines = Lines(e, "lines"),
+                };
+            }
             var con = D(d, "CONCLUSION");
             if (con != null)
                 conclusion = new ConclusionDef
@@ -163,7 +222,7 @@ namespace BlackBird
         static SpotInfo Spot(Dictionary<string, object> s) => new SpotInfo
         {
             id = S(s, "id"), label = S(s, "label"), clue = S(s, "clue"), say = S(s, "say"), after = S(s, "after"), before = S(s, "before"),
-            early = S(s, "early"), worldId = S(s, "worldId"), @event = S(s, "event"), pos = Fs(s, "pos"),
+            early = S(s, "early"), worldId = S(s, "worldId"), @event = S(s, "event"), pos = Fs(s, "pos"), place = S(s, "place"), clues = Strs(s, "clues"),
             r = s.TryGetValue("r", out var r) ? (float)(double)r : 2f, focus = B(s, "focus"), closeup = B(s, "closeup"),
         };
 
