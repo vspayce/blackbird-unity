@@ -48,6 +48,20 @@ namespace BlackBird
             for (int i = 0; i < steps.Length; i++) steps[i] = Step(rng, i);
             SceneManager.sceneLoaded += (s, m) => Dress(s);
             Dress(SceneManager.GetActiveScene());
+            // An Apple TV often renegotiates its audio output (HDMI, a HomePod) just after an app starts; Unity then
+            // resets its audio and every looping source stops. Start them again whenever that happens.
+            AudioSettings.OnAudioConfigurationChanged += changed =>
+            {
+                Debug.Log($"[Black Bird] audio configuration changed (device changed: {changed}): {Describe()}");
+                foreach (var a in new[] { windOut, windIn }) if (a && !a.isPlaying) a.Play();
+            };
+            Debug.Log("[Black Bird] audio: " + Describe());
+        }
+
+        static string Describe()
+        {
+            var c = AudioSettings.GetConfiguration();
+            return $"{c.sampleRate} Hz, {c.speakerMode}, buffer {c.dspBufferSize}, driver {AudioSettings.driverCapabilities}, listener {(FindAnyObjectByType<AudioListener>() ? "present" : "MISSING")}, volume {AudioListener.volume}";
         }
 
         void Dress(Scene s)
@@ -67,6 +81,7 @@ namespace BlackBird
             float wind = (night ? 0.32f : 0.2f) * master;
             windOut.volume = wind * (1 - indoor);
             windIn.volume = wind * 0.9f * indoor;
+            if (!windOut.isPlaying && Time.frameCount % 60 == 0) { windOut.Play(); windIn.Play(); }
 
             if (night)
             {
