@@ -70,8 +70,12 @@ namespace BlackBird
             if (solved) return "Chapter complete";
             var unmet = data.people.Keys.Where(p => p != "watson" && data.talk.ContainsKey(p) && !talked.Contains(p)).ToList();
             if (unmet.Count > 0 && talked.Count == 0) return "Speak with " + data.people[unmet[0]].name;
-            int open = data.spots.Count(s => s.clue != null && !Has(s.clue)) + (data.closeup?.spots.Count(s => s.clue != null && !Has(s.clue)) ?? 0);
-            bool hidden = data.spots.Any(s => s.focus && s.clue != null && !Has(s.clue));
+            // spots that still hold something, and are open now (some only after a story event, some only before)
+            bool Live(SpotInfo s) => (s.after == null || events.Contains(s.after)) && (s.before == null || !events.Contains(s.before)) && s.AllClues().Any(c => !Has(c));
+            int open = data.spots.Count(Live) + (data.closeup?.spots.Count(Live) ?? 0);
+            bool hidden = data.spots.Any(s => s.focus && Live(s));
+            var fresh = data.spots.FirstOrDefault(s => s.after != null && Live(s));
+            if (fresh != null && !CanConclude) return fresh.label ?? "Look closer";
             if (CanConclude) return "Open the Mind Palace and " + (data.conclusion.question.StartsWith("Who") ? "name the killer" : "answer the question");
             if (hidden && open > 0) return "Search the scene. Use Focus to see what others miss";
             if (open > 0) return "Examine the scene";

@@ -54,7 +54,8 @@ namespace BlackBird
             ex = GetComponent<Explorer>();
             if (!ex) { ex = gameObject.AddComponent<Explorer>(); ex.holmes = holmes; ex.watson = watson; ex.cameraRig = cameraRig; }
             ex.Place(spawn, spawnYaw);
-            if (watson) watson.transform.position = spawn + Quaternion.Euler(0, spawnYaw, 0) * watsonOffset;
+            if (watson) watson.transform.position = data.people.TryGetValue("watson", out var wp) && wp.pos != null ? Pos(wp.pos)   // where the case puts him
+                                                  : spawn + Quaternion.Euler(0, spawnYaw, 0) * watsonOffset;
             foreach (var c in cast)
             {
                 if (!data.people.TryGetValue(c.id, out var p) || p.pos == null || !c.walker) continue;
@@ -290,11 +291,13 @@ namespace BlackBird
             var mid = Vector3.Lerp(h.position, foe.position, 0.5f);
             var dir = Flat(foe.position - h.position).normalized; var perp = Vector3.Cross(Vector3.up, dir);
             cameraRig.Shot(mid + perp * 2.6f - dir * 0.4f + Vector3.up * 1.55f, mid + Vector3.up * 1.3f);
+            var foeW = foe.GetComponent<Walker>(); foeW.SetPose("Aim"); holmes.SetPose("HandsUp");
             Focus.I.ForceOn();
             ui.FightPlanner(f, ok =>
             {
                 if (!ok) { state.misses++; state.Save(); return; }
                 Focus.I.ForceOff();
+                foeW.SetPose(null); holmes.SetPose(null);
                 ui.Lines(f.success, () =>
                 {
                     cameraRig.EndShot();

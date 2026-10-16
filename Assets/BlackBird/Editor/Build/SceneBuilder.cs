@@ -443,6 +443,8 @@ namespace BlackBird.EditorTools
             ac.parameters = ac.parameters.Select(p => { if (p.name == "PlayRate") p.defaultFloat = 1; return p; }).ToArray();
             ac.AddParameter("Talk", AnimatorControllerParameterType.Bool);
             ac.AddParameter("Lie", AnimatorControllerParameterType.Bool);
+            ac.AddParameter("Aim", AnimatorControllerParameterType.Bool);
+            ac.AddParameter("HandsUp", AnimatorControllerParameterType.Bool);
             var layers = ac.layers; layers[0].iKPass = true; ac.layers = layers;
             var sm = ac.layers[0].stateMachine;
             walkSpeed = 1.4f; runSpeed = 3.6f;
@@ -483,6 +485,17 @@ namespace BlackBird.EditorTools
                 back.AddCondition(AnimatorConditionMode.IfNot, 0, "Talk");
                 var back2 = ts.AddTransition(loco); back2.hasExitTime = false; back2.duration = 0.25f;
                 back2.AddCondition(AnimatorConditionMode.Greater, 0.3f, "Gait");
+            }
+            // held poses for the story (Cairo's pistol, Holmes's hands behind his neck): any state, while the flag is set
+            foreach (var (param, clipName) in new[] { ("Aim", "Aim"), ("HandsUp", "HandsUp") })
+            {
+                var clip = FindClip(clipName);
+                if (!clip) continue;
+                var ps = sm.AddState(param); ps.motion = clip; ps.iKOnFeet = true;
+                var to = sm.AddAnyStateTransition(ps); to.hasExitTime = false; to.duration = 0.3f; to.canTransitionToSelf = false;
+                to.AddCondition(AnimatorConditionMode.If, 0, param);
+                var back = ps.AddTransition(loco); back.hasExitTime = false; back.duration = 0.35f;
+                back.AddCondition(AnimatorConditionMode.IfNot, 0, param);
             }
             EditorUtility.SetDirty(ac);
             return ac;

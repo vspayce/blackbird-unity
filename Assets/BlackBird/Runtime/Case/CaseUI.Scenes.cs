@@ -51,7 +51,7 @@ namespace BlackBird
                 }
                 var L = lines[i];
                 var row = UIKit.Rect("Row", col);
-                var rowLe = row.gameObject.AddComponent<LayoutElement>(); rowLe.preferredHeight = 56;
+                var rowLe = row.gameObject.AddComponent<LayoutElement>(); rowLe.preferredHeight = rowLe.minHeight = 56; rowLe.flexibleHeight = 0;   // (a row reports itself flexible otherwise, and fills the sheet)
                 var h = row.gameObject.AddComponent<HorizontalLayoutGroup>(); h.spacing = 8; h.childControlWidth = h.childControlHeight = true; h.childForceExpandWidth = false;
                 var lead = UIKit.Label(row, "Lead", 24, TextAnchor.MiddleLeft, UIKit.Ink); lead.text = L.lead; lead.gameObject.AddComponent<LayoutElement>().preferredWidth = 140;
                 Button first = null;

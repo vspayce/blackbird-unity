@@ -3,7 +3,7 @@
 // head toward whatever it is looking at.
 //
 // Animator parameters (made by the scene builder): Gait (0 idle, 1 walk, 2 run), PlayRate (state
-// speed multiplier), Talk (bool), Lie (bool).
+// speed multiplier), Talk (bool), Lie (bool), Aim and HandsUp (bools, held story poses).
 using UnityEngine;
 
 namespace BlackBird
@@ -108,6 +108,13 @@ namespace BlackBird
         public void Idle(float dt) => Drive(Vector3.zero, dt);
         public void SetTalking(bool on) { if (anim) anim.SetBool(TalkId, on); }
         public void SetLying(bool on) { if (anim) anim.SetBool(LieId, on); }
+        /// A held story pose: "Aim", "HandsUp", or null for none.
+        public void SetPose(string pose)
+        {
+            if (!anim) return;
+            foreach (var p in anim.parameters)
+                if (p.type == AnimatorControllerParameterType.Bool && (p.name == "Aim" || p.name == "HandsUp")) anim.SetBool(p.nameHash, p.name == pose);
+        }
 
         void LateUpdate()
         {
