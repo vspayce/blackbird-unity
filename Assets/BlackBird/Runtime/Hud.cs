@@ -127,6 +127,8 @@ namespace BlackBird
             hint = Label(safe, "Hint", type, 16, TextAnchor.LowerLeft, new Color(Ink.r, Ink.g, Ink.b, 0.45f));
             Place(hint.rectTransform, new Vector2(0, 0), new Vector2(28, 12), new Vector2(900, 30)); hint.rectTransform.pivot = Vector2.zero;
             hint.text = "W/S walk · A/D turn · Shift slow down · click to look with the mouse (Esc frees it) · E examine · F Focus";
+            // the keyboard's keys mean nothing on a phone or an Apple TV
+            if (Application.platform == RuntimePlatform.IPhonePlayer || Application.platform == RuntimePlatform.tvOS) hint.gameObject.SetActive(false);
 
             // rotate prompt for phones held upright
             var rp = Panel(root, "Rotate", new Color(0.03f, 0.04f, 0.05f, 1f)); Stretch(rp, 0, 0, 0, 0);
