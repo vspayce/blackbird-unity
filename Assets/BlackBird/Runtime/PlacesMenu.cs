@@ -125,6 +125,7 @@ namespace BlackBird
         {
             if (EventSystem.current) return;
             var es = new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
+            es.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();   // a run-time module has no actions in a player build
             DontDestroyOnLoad(es);
         }
 

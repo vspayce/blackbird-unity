@@ -29,7 +29,9 @@ namespace BlackBird
             Cursor.lockState = CursorLockMode.None;
             UIKit.serif = serif ? serif : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (!UIKit.type) UIKit.type = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            if (!EventSystem.current) new GameObject("EventSystem", typeof(EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
+            if (!EventSystem.current)   // (a module added at run time needs its actions given in a player build)
+                new GameObject("EventSystem", typeof(EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule))
+                    .GetComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>().AssignDefaultActions();
             Build();
             Show(main);
         }
