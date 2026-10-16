@@ -75,8 +75,9 @@ namespace BlackBird.EditorTools
                     {
                         int n = Mathf.Max(2, ic.minLayerCount);
                         var layers = new Texture2D[n];
-                        layers[0] = back;
-                        for (int i = 1; i < n; i++) layers[i] = front;
+                        // Xcode's image stacks run front to back: the last layer is the opaque background
+                        for (int i = 0; i < n - 1; i++) layers[i] = front;
+                        layers[n - 1] = back;
                         ic.SetTextures(layers);
                     }
                 }
