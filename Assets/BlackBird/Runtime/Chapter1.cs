@@ -15,6 +15,8 @@ namespace BlackBird
         public const float SZ = -1f;
         public static Vector3 W(float x, float y, float z) => new Vector3(SX * x, y, SZ * z);
         public static Vector3 W(float x, float z) => W(x, 0, z);
+        /// Back from Unity to the web game's coordinates.
+        public static Vector3 Unmap(Vector3 u) => new Vector3(u.x / SX, u.y, u.z / SZ);
         public static Bounds Box(float x0, float y0, float z0, float x1, float y1, float z1)
         {
             var a = W(x0, y0, z0); var b = W(x1, y1, z1);

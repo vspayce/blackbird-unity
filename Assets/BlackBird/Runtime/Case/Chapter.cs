@@ -26,6 +26,7 @@ namespace BlackBird
         public Destination[] destinations = new Destination[0];
 
         Explorer ex;
+        Tail tail; Walker tailWho;
         CaseData data;
         CaseState state;
         CaseUI ui;
@@ -64,6 +65,12 @@ namespace BlackBird
                 if (!data.people.TryGetValue(c.id, out var p) || p.pos == null || !c.walker) continue;
                 c.walker.transform.position = P(p.pos);
                 if (p.face != null) { var f = P(p.face) - c.walker.transform.position; f.y = 0; if (f.sqrMagnitude > 0.01f) c.walker.transform.rotation = Quaternion.LookRotation(f); }
+            }
+            if (data.tail != null)
+            {
+                tail = GetComponent<Tail>() ?? gameObject.AddComponent<Tail>();
+                tailWho = cast.FirstOrDefault(c => c.id == data.tail.who)?.walker;
+                tail.Bind(this, data.tail, tailWho, holmes, watson);
             }
             Presence();
             Hud.I.CaseControls(true);
@@ -130,6 +137,7 @@ namespace BlackBird
             ex.Steer();
             FollowWatson(dt);
             People(dt);
+            if (tail) tail.Tick(dt, state);
             FindContext();
             Hud.I.Context(contextLabel, input.UsingTouch);
             if (input.Act && contextAct != null) contextAct();
@@ -160,7 +168,9 @@ namespace BlackBird
             foreach (var c in cast)
             {
                 if (!c.walker || !c.walker.gameObject.activeSelf) continue;
-                var p = c.walker; p.Idle(dt);
+                var p = c.walker;
+                if (p == tailWho && tail && tail.Phase != "done") { if (ui.Open || busy) p.Idle(dt); continue; }   // the tail walks him
+                p.Idle(dt);
                 float d = Vector3.Distance(p.transform.position, holmes.transform.position);
                 p.lookTarget = d < 5f ? holmes.transform.Find("LookAt") ?? holmes.transform : null;
                 if (d < 2.6f) p.FaceTowards(holmes.transform.position, dt * 0.6f);
@@ -185,6 +195,7 @@ namespace BlackBird
             if (s.before != null && state.events.Contains(s.before)) return false;
             var clues = s.AllClues();
             if (clues.Length > 0 && clues.All(state.Has)) return false;
+            if (s.@event != null && state.events.Contains(s.@event)) return false;
             return true;
         }
 
@@ -242,6 +253,12 @@ namespace BlackBird
 
         void UseSpot(SpotInfo s)
         {
+            if (s.@event != null)
+            {
+                if (s.needs != null && !s.needs.All(state.Has)) { Hud.I.Narrate("Holmes", s.early ?? "Not yet, Watson."); return; }
+                RunEvent(s.@event);
+                return;
+            }
             var clues = s.AllClues();
             if (clues.Length > 0) { foreach (var c in clues) Give(c); return; }
             if (s.say != null) Hud.I.Narrate("Holmes", s.say);
@@ -308,7 +325,10 @@ namespace BlackBird
         }
 
         // ---- story events ----
-        void RunEvent(string name)
+        /// Holmes (and Watson at his shoulder) somewhere else: the tail's retries.
+        public void PlaceHolmes(Vector3 pos, float yaw) => ex.Place(pos, yaw);
+
+        public void RunEvent(string name)
         {
             if (data.fights != null && data.fights.TryGetValue(name, out var fight)) { RunFight(name, fight); return; }
             if (data.events.TryGetValue(name, out var ev))

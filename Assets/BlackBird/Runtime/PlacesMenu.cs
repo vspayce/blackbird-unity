@@ -24,6 +24,8 @@ namespace BlackBird
             ("StMark", "The St. Mark", "Chapter III · Miss O'Shaughnessy"),
             ("HopkinsNight", "The Hopkins House by night", "Chapter IV · the Fat Man"),
             ("HopkinsDay", "The Hopkins House by day", "Nob Hill, free to wander"),
+            ("Kearny", "Kearny Street", "Chapter V · the Gunsel"),
+            ("Title", "The title screen", "Chapters, and where you left off"),
         };
 
         Canvas canvas;
@@ -95,6 +97,9 @@ namespace BlackBird
             var es = EventSystem.current;
             if (es && first && (es.currentSelectedGameObject == null || !es.currentSelectedGameObject.transform.IsChildOf(list))) es.SetSelectedGameObject(first);
         }
+
+        /// The title screen's "Wander".
+        public void OpenFromMenu() { if (!open) Open(); }
 
         void Open()
         {

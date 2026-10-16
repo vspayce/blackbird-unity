@@ -105,6 +105,7 @@ namespace BlackBird
             if (on != lastFocus) { lastFocus = on; cues.PlayOneShot(on ? focusOn : focusOff, 0.7f * master); }
         }
 
+        public static void Bell(float vol = 0.5f) { if (I) I.cues.PlayOneShot(I.bell, vol); }
         public static void Clue() { if (I) I.cues.PlayOneShot(I.clue, 0.8f); }
         public static void Deduce() { if (I) I.cues.PlayOneShot(I.deduce, 0.8f); }
         public static void Wrong() { if (I) I.cues.PlayOneShot(I.wrong, 0.8f); }

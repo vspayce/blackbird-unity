@@ -38,7 +38,7 @@ namespace BlackBird
             cameraRig.yaw = yaw;
         }
 
-        static void Teleport(Walker w, Vector3 pos, float yaw)
+        public static void Teleport(Walker w, Vector3 pos, float yaw)
         {
             var cc = w.GetComponent<CharacterController>();
             if (cc) cc.enabled = false;

@@ -11,7 +11,7 @@ namespace BlackBird
     public class SceneSwitch : MonoBehaviour
     {
         static SceneSwitch instance;
-        static readonly string[] Scenes = { "BurrittAlley", "HopkinsNight", "HopkinsDay", "PalaceHotel", "StMark" };
+        static readonly string[] Scenes = { "BurrittAlley", "HopkinsNight", "HopkinsDay", "PalaceHotel", "StMark", "Kearny", "Title" };
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Install()
@@ -34,7 +34,7 @@ namespace BlackBird
             var v = url.Substring(q + 6).Split('&', '#')[0].ToLowerInvariant();
             return v == "hopkins" || v == "hopkins-night" || v == "night" ? "HopkinsNight"
                  : v == "hopkins-day" || v == "day" ? "HopkinsDay"
-                 : v == "alley" ? "BurrittAlley" : v == "palace" ? "PalaceHotel" : v == "stmark" ? "StMark" : null;
+                 : v == "alley" ? "BurrittAlley" : v == "palace" ? "PalaceHotel" : v == "stmark" ? "StMark" : v == "kearny" ? "Kearny" : null;
         }
 
         void Awake()
@@ -54,6 +54,7 @@ namespace BlackBird
             if (kb.digit3Key.wasPressedThisFrame) Go(Scenes[2]);
             if (kb.digit4Key.wasPressedThisFrame) Go(Scenes[3]);
             if (kb.digit5Key.wasPressedThisFrame) Go(Scenes[4]);
+            if (kb.digit6Key.wasPressedThisFrame) Go(Scenes[5]);
             if (kb.tabKey.wasPressedThisFrame)
             {
                 var cur = SceneManager.GetActiveScene().name;
@@ -65,7 +66,7 @@ namespace BlackBird
         static readonly System.Collections.Generic.Dictionary<string, (string key, string folder)> WebPlaces =
             new System.Collections.Generic.Dictionary<string, (string, string)>
             {
-                ["BurrittAlley"] = ("alley", "alley"), ["HopkinsNight"] = ("hopkins", "hopkins"), ["HopkinsDay"] = ("hopkins-day", "hopkins"), ["PalaceHotel"] = ("palace", "palace"), ["StMark"] = ("stmark", "stmark"),
+                ["BurrittAlley"] = ("alley", "alley"), ["HopkinsNight"] = ("hopkins", "hopkins"), ["HopkinsDay"] = ("hopkins-day", "hopkins"), ["PalaceHotel"] = ("palace", "palace"), ["StMark"] = ("stmark", "stmark"), ["Kearny"] = ("kearny", "kearny"),
             };
 #if UNITY_WEBGL && !UNITY_EDITOR
         [System.Runtime.InteropServices.DllImport("__Internal")] static extern void BB_GoTo(string url);

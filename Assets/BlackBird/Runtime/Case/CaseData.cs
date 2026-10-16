@@ -50,7 +50,7 @@ namespace BlackBird
     public class SpotInfo
     {
         public string id, label, clue, say, after, before, early, worldId, @event, place;
-        public string[] clues;
+        public string[] clues, needs;
         public float[] pos; public float r = 2f;
         public bool focus, closeup;
         public string[] AllClues() => clues != null && clues.Length > 0 ? clues : clue != null ? new[] { clue } : new string[0];
@@ -80,6 +80,17 @@ namespace BlackBird
         public float[] wake;
     }
 
+    // tailing (Chapter V): he shadows Holmes, then Holmes follows him along a path without being seen
+    public class TailDef
+    {
+        public string who, after, until;
+        public float follow, shadowX, speed, sight, close, lose, loseTime;
+        public List<float[]> path = new List<float[]>();
+        public Dictionary<int, float> pauses = new Dictionary<int, float>();
+        public Dictionary<int, string> waitFor = new Dictionary<int, string>();
+        public string[] spotted, lost;
+    }
+
     public class CloseupInfo { public float[] cam, look; public List<SpotInfo> spots; }
 
     public class AnswerDef { public string a, reply; public bool right; }
@@ -104,6 +115,7 @@ namespace BlackBird
         public readonly List<SpotInfo> spots = new List<SpotInfo>();
         public CloseupInfo closeup;
         public ConclusionDef conclusion;
+        public TailDef tail;
         public readonly Dictionary<string, PortraitDef> portraits = new Dictionary<string, PortraitDef>();
         public readonly Dictionary<string, FightDef> fights = new Dictionary<string, FightDef>();
         public readonly Dictionary<string, EventDef> events = new Dictionary<string, EventDef>();
@@ -210,6 +222,17 @@ namespace BlackBird
                     before = SL("before"), wrong = SL("wrong"), fragments = SL("fragments"), after = Lines(e, "after"), lines = Lines(e, "lines"),
                 };
             }
+            var tl = D(d, "TAIL");
+            if (tl != null)
+            {
+                float F(string k) => tl.TryGetValue(k, out var v) && v is double x ? (float)x : 0f;
+                tail = new TailDef { who = S(tl, "who"), after = S(tl, "after"), until = S(tl, "until"), follow = F("follow"), shadowX = F("shadowX"),
+                    speed = F("speed"), sight = F("sight"), close = F("close"), lose = F("lose"), loseTime = F("loseTime"),
+                    spotted = Strs(tl, "spotted"), lost = Strs(tl, "lost") };
+                foreach (List<object> pt in (List<object>)tl["path"]) tail.path.Add(pt.Select(o => (float)(double)o).ToArray());
+                foreach (var kv in D(tl, "pauses") ?? new Dictionary<string, object>()) tail.pauses[int.Parse(kv.Key)] = (float)(double)kv.Value;
+                foreach (var kv in D(tl, "waitFor") ?? new Dictionary<string, object>()) tail.waitFor[int.Parse(kv.Key)] = kv.Value as string;
+            }
             var con = D(d, "CONCLUSION");
             if (con != null)
                 conclusion = new ConclusionDef
@@ -223,6 +246,7 @@ namespace BlackBird
         {
             id = S(s, "id"), label = S(s, "label"), clue = S(s, "clue"), say = S(s, "say"), after = S(s, "after"), before = S(s, "before"),
             early = S(s, "early"), worldId = S(s, "worldId"), @event = S(s, "event"), pos = Fs(s, "pos"), place = S(s, "place"), clues = Strs(s, "clues"),
+            needs = Strs(s, "needs"),
             r = s.TryGetValue("r", out var r) ? (float)(double)r : 2f, focus = B(s, "focus"), closeup = B(s, "closeup"),
         };
 

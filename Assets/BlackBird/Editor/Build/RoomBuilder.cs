@@ -28,13 +28,17 @@ namespace BlackBird.EditorTools
             public bool daylight;                 // a morning interior: soft daylight and dimmed gas
             public float fog = 0.02f;
             public Color fogColor = new Color(0.55f, 0.58f, 0.62f);
+            public bool street;                   // outdoors at night: moonlight, brighter gas, a longer view
         }
 
         public static readonly Spec Palace = new Spec { set = "palace", scene = "PalaceHotel", caseId = "cairo", next = "StMark", daylight = true, stepIn = 1.6f };
         public static readonly Spec StMark = new Spec { set = "stmark", scene = "StMark", caseId = "brigid", next = "HopkinsNight", daylight = true };
+        public static readonly Spec Kearny = new Spec { set = "kearny", scene = "Kearny", caseId = "gunsel", next = "Title", street = true,
+            fog = 0.042f, fogColor = new Color(0.102f, 0.133f, 0.172f) };
 
         [MenuItem("Black Bird/Chapters/Build Chapter II · Palace Hotel", priority = 30)] public static void BuildPalace() => Build(Palace);
         [MenuItem("Black Bird/Chapters/Build Chapter III · St. Mark", priority = 31)] public static void BuildStMark() => Build(StMark);
+        [MenuItem("Black Bird/Chapters/Build Chapter V · Kearny Street", priority = 33)] public static void BuildKearny() => Build(Kearny);
 
         public static string ScenePath(Spec s) => $"{Root}/Scenes/{s.scene}.unity";
 
@@ -63,9 +67,12 @@ namespace BlackBird.EditorTools
                     if (n.StartsWith("view_")) { m.shader = Shader.Find("Universal Render Pipeline/Unlit"); }   // the painted street outside
                 }
             var flags = StaticEditorFlags.ContributeGI | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic | StaticEditorFlags.BatchingStatic;
-            foreach (var t in set.GetComponentsInChildren<Transform>(true)) GameObjectUtility.SetStaticEditorFlags(t.gameObject, flags);
+            var carRoot = set.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "CableCar");
+            foreach (var t in set.GetComponentsInChildren<Transform>(true))
+                GameObjectUtility.SetStaticEditorFlags(t.gameObject, carRoot && t.IsChildOf(carRoot) ? 0 : flags);
             foreach (var mf in set.GetComponentsInChildren<MeshFilter>())
             {
+                if (carRoot && mf.transform.IsChildOf(carRoot)) continue;   // it moves: CableCar gives it its own collider
                 var mat = mf.GetComponent<Renderer>().sharedMaterial; var n = mat ? mat.name : "";
                 if (n.Contains("glass") || n.Contains("lamp_glass") || n.Contains("view_")) { mf.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off; continue; }
                 mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh;
@@ -87,16 +94,16 @@ namespace BlackBird.EditorTools
             {
                 var l = new GameObject("Gas").AddComponent<Light>();
                 l.transform.SetParent(t, false); l.transform.localPosition = Vector3.down * 0.15f;
-                l.type = LightType.Point; l.color = gas; l.intensity = spec.daylight ? 3.5f : 6f; l.range = 9f;
+                l.type = LightType.Point; l.color = gas; l.intensity = spec.daylight ? 3.5f : spec.street ? 9f : 6f; l.range = spec.street ? 14f : 9f;
                 l.lightmapBakeType = LightmapBakeType.Baked; l.shadows = LightShadows.Soft; l.shapeRadius = 0.08f;
             }
             var sun = new GameObject("Daylight").AddComponent<Light>();
             sun.type = LightType.Directional; sun.lightmapBakeType = LightmapBakeType.Mixed; sun.shadows = LightShadows.Soft;
-            sun.color = new Color(0.86f, 0.9f, 1f); sun.intensity = spec.daylight ? 1.1f : 0.25f;
-            sun.transform.rotation = Quaternion.Euler(28, 160, 0);   // a low, cool morning sun from the street side
+            sun.color = spec.street ? new Color(0.56f, 0.65f, 0.78f) : new Color(0.86f, 0.9f, 1f); sun.intensity = spec.daylight ? 1.1f : spec.street ? 0.3f : 0.25f;
+            sun.transform.rotation = spec.street ? Quaternion.Euler(50, 200, 0) : Quaternion.Euler(28, 160, 0);   // the moon through the fog, or a low morning sun
             RenderSettings.sun = sun;
             RenderSettings.ambientMode = AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor = spec.daylight ? new Color(0.5f, 0.55f, 0.62f) : new Color(0.12f, 0.14f, 0.2f);
+            RenderSettings.ambientSkyColor = spec.daylight ? new Color(0.5f, 0.55f, 0.62f) : spec.street ? new Color(0.2f, 0.24f, 0.31f) : new Color(0.12f, 0.14f, 0.2f);
             RenderSettings.ambientEquatorColor = spec.daylight ? new Color(0.36f, 0.33f, 0.3f) : new Color(0.08f, 0.08f, 0.1f);
             RenderSettings.ambientGroundColor = new Color(0.16f, 0.12f, 0.09f);
             RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
@@ -157,19 +164,34 @@ namespace BlackBird.EditorTools
             ch.spawn += Quaternion.Euler(0, ch.spawnYaw, 0) * Vector3.forward * spec.stepIn;
             if (sp.TryGetValue("watson", out var wo)) { var a = ((List<object>)wo).Select(Fv).ToArray(); ch.watsonOffset = new Vector3(a[0], a[1], -a[2]); }
             systems.AddComponent<SceneSwitch>();
+            // Kearny Street: the cover points the tail checks, and the Sutter Street cable car
+            if (data.TryGetValue("cover", out var cov))
+            {
+                var tail = systems.AddComponent<Tail>();
+                tail.cover = ((List<object>)cov).Cast<List<object>>().Select(c => new CoverPoint { pos = Web.W(Fv(c[0]), 0, Fv(c[1])), kind = c.Count > 2 ? c[2] as string : "post" }).ToArray();
+            }
+            if (carRoot && data.TryGetValue("cablecar", out var cco))
+            {
+                var cc = (Dictionary<string, object>)cco;
+                var car = systems.AddComponent<CableCar>();
+                car.car = carRoot; car.z = Fv(cc["z"]); car.x0 = Fv(cc["x0"]); car.x1 = Fv(cc["x1"]); car.speed = Fv(cc["speed"]);
+                car.period = Fv(cc["period"]); car.length = Fv(cc["length"]); car.width = Fv(cc["width"]);
+            }
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
             // ---- probes and baking settings ----
             var b0 = new Bounds(Vector3.zero, Vector3.zero);
             foreach (var r in set.GetComponentsInChildren<Renderer>()) b0.Encapsulate(r.bounds);
             var probes = new List<Vector3>();
-            for (float x = b0.min.x + 0.5f; x < b0.max.x; x += 2f)
-                for (float z = b0.min.z + 0.5f; z < b0.max.z; z += 2f)
+            float step = spec.street ? 4f : 2f;
+            if (spec.street) { b0 = new Bounds(b0.center, Vector3.Min(b0.size, new Vector3(60, 40, 260))); }
+            for (float x = b0.min.x + 0.5f; x < b0.max.x; x += step)
+                for (float z = b0.min.z + 0.5f; z < b0.max.z; z += step)
                     foreach (var y in new[] { 0.6f, 1.8f, 3.2f }) probes.Add(new Vector3(x, y, z));
             new GameObject("LightProbes").AddComponent<LightProbeGroup>().probePositions = probes.ToArray();
             var rp = new GameObject("Reflections").AddComponent<ReflectionProbe>();
             rp.transform.position = b0.center; rp.size = b0.size; rp.boxProjection = true; rp.mode = ReflectionProbeMode.Baked; rp.resolution = 128;
-            Lightmapping.lightingSettings = Lighting(spec.scene);
+            Lightmapping.lightingSettings = Lighting(spec.scene, spec.street ? 4f : 12f);
 
             var path = ScenePath(spec);
             EditorSceneManager.SaveScene(scene, path);
@@ -178,7 +200,7 @@ namespace BlackBird.EditorTools
             Debug.Log($"[Black Bird] Built {path}: {cast.Count} people, {ch.places.Length} places. Next: Black Bird ▸ Hopkins ▸ Bake Lighting.");
         }
 
-        static LightingSettings Lighting(string name)
+        static LightingSettings Lighting(string name, float texels)
         {
             string path = $"{Gen}/{name}Lighting.lighting";
             var ls = AssetDatabase.LoadAssetAtPath<LightingSettings>(path);
@@ -186,7 +208,7 @@ namespace BlackBird.EditorTools
             ls.bakedGI = true; ls.realtimeGI = false;
             ls.lightmapper = LightingSettings.Lightmapper.ProgressiveGPU;
             ls.mixedBakeMode = MixedLightingMode.IndirectOnly;
-            ls.lightmapResolution = 12f; ls.lightmapMaxSize = 1024; ls.lightmapPadding = 4;
+            ls.lightmapResolution = texels; ls.lightmapMaxSize = texels < 8 ? 2048 : 1024; ls.lightmapPadding = 4;
             ls.directSampleCount = 32; ls.indirectSampleCount = 160; ls.environmentSampleCount = 96; ls.maxBounces = 3;
             ls.directionalityMode = LightmapsMode.NonDirectional;
             ls.ao = true; ls.aoMaxDistance = 0.8f;
