@@ -19,7 +19,7 @@ namespace BlackBird
         AudioSource windOut, windIn, cues;
         AudioClip horn, bell, clue, deduce, wrong, focusOn, focusOff;
         internal AudioClip[] steps;
-        float hornT = 8f, bellT = 25f, indoor, master = 1f;
+        float hornT = 4f, bellT = 6f, indoor, master = 1f;
         bool night = true, lastFocus;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -31,8 +31,15 @@ namespace BlackBird
             I = go.AddComponent<Sound>();
         }
 
+#if (UNITY_IOS || UNITY_TVOS) && !UNITY_EDITOR
+        [System.Runtime.InteropServices.DllImport("__Internal")] static extern void BB_PlaybackAudio();
+#endif
+
         void Awake()
         {
+#if (UNITY_IOS || UNITY_TVOS) && !UNITY_EDITOR
+            BB_PlaybackAudio();      // heard in silent mode too (Plugins/Apple/BlackBirdAudio.mm)
+#endif
             var rng = new System.Random(1895);
             windOut = Loop(Wind(rng, 6f, 0.06f, 1.0f), 0.32f);
             windIn = Loop(Wind(rng, 6f, 0.012f, 0.55f), 0f);
@@ -78,7 +85,7 @@ namespace BlackBird
             var cam = Camera.main;
             bool under = cam && Physics.Raycast(cam.transform.position + Vector3.up * 0.3f, Vector3.up, 45f, ~0, QueryTriggerInteraction.Ignore);
             indoor = Mathf.MoveTowards(indoor, under ? 1 : 0, dt * 0.8f);
-            float wind = (night ? 0.32f : 0.2f) * master;
+            float wind = (night ? 0.55f : 0.4f) * master;
             windOut.volume = wind * (1 - indoor);
             windIn.volume = wind * 0.9f * indoor;
             if (!windOut.isPlaying && Time.frameCount % 60 == 0) { windOut.Play(); windIn.Play(); }

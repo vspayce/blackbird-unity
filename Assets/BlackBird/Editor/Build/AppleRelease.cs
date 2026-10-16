@@ -39,8 +39,25 @@ namespace BlackBird.EditorTools
             }
             PlayerSettings.companyName = "vspayce";
             PlayerSettings.productName = "The Black Bird";
+            ApplePlugins();
             if (target == BuildTarget.tvOS) TvIcons();
             else SquareIcons(target == BuildTarget.iOS ? NamedBuildTarget.iOS : NamedBuildTarget.Standalone);
+        }
+
+        // the native audio-session plugin goes into iPhone/iPad and Apple TV builds only
+        static void ApplePlugins()
+        {
+            foreach (var path in new[] { "Assets/BlackBird/Plugins/Apple/BlackBirdAudio.mm" })
+            {
+                var imp = AssetImporter.GetAtPath(path) as PluginImporter;
+                if (!imp) { Debug.LogError("[Black Bird] Missing plugin " + path); continue; }
+                if (imp.GetCompatibleWithPlatform(BuildTarget.iOS) && imp.GetCompatibleWithPlatform(BuildTarget.tvOS) && !imp.GetCompatibleWithAnyPlatform()) continue;
+                imp.SetCompatibleWithAnyPlatform(false);
+                imp.SetCompatibleWithEditor(false);
+                imp.SetCompatibleWithPlatform(BuildTarget.iOS, true);
+                imp.SetCompatibleWithPlatform(BuildTarget.tvOS, true);
+                imp.SaveAndReimport();
+            }
         }
 
         static Texture2D Tex(string file)
