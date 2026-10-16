@@ -45,6 +45,14 @@ namespace BlackBird
 
         void Update()
         {
+            // a controller's View / Select button moves on to the next place (alley, house by night, by day)
+            var pad = Gamepad.current;
+            if (pad != null && pad.selectButton.wasPressedThisFrame)
+            {
+                int i = System.Array.IndexOf(Scenes, SceneManager.GetActiveScene().name);
+                Go(Scenes[(i + 1) % Scenes.Length]);
+                return;
+            }
             var kb = Keyboard.current;
             if (kb == null) return;
             if (kb.digit1Key.wasPressedThisFrame) Go(Scenes[0]);
