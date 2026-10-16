@@ -24,12 +24,14 @@
     #fill { height: 100%; width: 0; background: var(--gold); box-shadow: 0 0 10px var(--gold); transition: width 0.2s; }
     #msg { margin-top: 14px; font-size: 14px; opacity: 0.6; min-height: 1.2em; }
     /* the splash: pick a place */
-    #splash { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    #splash { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: safe center; overflow-y: auto;
       gap: clamp(14px, 3vh, 28px); padding: 16px; box-sizing: border-box; color: var(--ink); font-family: 'IM Fell English', Georgia, serif; text-align: center;
       background: radial-gradient(ellipse at 50% 30%, rgba(255,180,100,0.12), transparent 45%), linear-gradient(#141b24, #0b0f14); transition: opacity 0.6s; }
     #splash h1 { font-family: 'IM Fell English SC', Georgia, serif; font-weight: 400; font-size: clamp(30px, 6vw, 64px); margin: 0; letter-spacing: 0.04em; }
     #splash .sub { margin: -6px 0 0; opacity: 0.65; font-style: italic; font-size: clamp(14px, 2.2vw, 19px); }
-    #places { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(10px, 2vw, 22px); width: min(100%, 1100px); }
+    #places { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: clamp(10px, 1.6vw, 20px); width: min(100%, 1280px); }
+    @media (max-width: 900px) { #places { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 560px) { #places { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .place { all: unset; cursor: pointer; display: flex; flex-direction: column; border: 1px solid rgba(201,164,106,0.35); background: rgba(0,0,0,0.25);
       transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s; }
     .place:hover, .place:focus-visible { transform: translateY(-3px); border-color: var(--gold); box-shadow: 0 0 24px rgba(201,164,106,0.25); }
@@ -54,11 +56,12 @@
     <p class="sub">San Francisco, 1895</p>
     <div id="places">
       <button class="place" data-scene="alley"><img src="img/alley.jpg" alt=""><b>Burritt Alley</b><span>Chapter I · where Miles Archer fell</span></button>
+      <button class="place" data-scene="palace"><img src="img/palace.jpg" alt=""><b>The Palace Hotel</b><span>Chapter II · the Levantine</span></button>
+      <button class="place" data-scene="stmark"><img src="img/stmark.jpg" alt=""><b>The St. Mark</b><span>Chapter III · Miss Wonderly</span></button>
       <button class="place" data-scene="hopkins"><img src="img/hopkins-night.jpg" alt=""><b>The Hopkins House</b><span>By night · gaslight and fog</span></button>
       <button class="place" data-scene="hopkins-day"><img src="img/hopkins-day.jpg" alt=""><b>The Hopkins House</b><span>By day · Muybridge's city, 1878</span></button>
-      <button class="place" data-scene="palace"><img src="img/palace.jpg" alt=""><b>The Palace Hotel</b><span>Chapter II · the Levantine</span></button>
     </div>
-    <div class="keys">In the game: 1 · 2 · 3 · 4 change place, Tab turns the house from night to day</div>
+    <div class="keys">In the game: 1 – 5 change place, Tab turns the house from night to day</div>
   </div>
   <a id="menu" href="./">Places</a>
   <div id="loader" style="display:none">
@@ -110,10 +113,10 @@
       if (e.reason && (e.reason.name === 'NotAllowedError' || /pointer ?lock/i.test(String(e.reason)))) e.preventDefault();
     });
     // Pick a place on the splash (or come straight in with ?scene=…); the game reads the scene from the URL.
-    const names = { alley: 'Burritt Alley', hopkins: 'The Hopkins House, by night', 'hopkins-day': 'The Hopkins House, by day', palace: 'The Palace Hotel' };
+    const names = { alley: 'Burritt Alley', hopkins: 'The Hopkins House, by night', 'hopkins-day': 'The Hopkins House, by day', palace: 'The Palace Hotel', stmark: 'The St. Mark Hotel' };
     const splash = document.querySelector('#splash');
     // Each place is its own download in its own folder (alley/, hopkins/); the root holds only this splash page.
-    const FOLDER = { alley: 'alley', hopkins: 'hopkins', 'hopkins-day': 'hopkins', palace: 'palace' };
+    const FOLDER = { alley: 'alley', hopkins: 'hopkins', 'hopkins-day': 'hopkins', palace: 'palace', stmark: 'stmark' };
     const here = location.pathname.replace(/[^/]*$/, '').split('/').filter(Boolean).pop() || '';
     const inPlayer = Object.values(FOLDER).includes(here);
     const root = inPlayer ? '../' : './';

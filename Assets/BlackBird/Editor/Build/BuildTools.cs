@@ -50,6 +50,7 @@ namespace BlackBird.EditorTools
             ("alley", new[] { "BurrittAlley" }),
             ("hopkins", new[] { "HopkinsNight", "HopkinsDay" }),   // together, so Tab turns night to day at once
             ("palace", new[] { "PalaceHotel" }),
+            ("stmark", new[] { "StMark" }),
         };
 
         // The editor must be switched to a platform before building for it (the scripts are compiled per platform). The
@@ -99,7 +100,7 @@ namespace BlackBird.EditorTools
         }
 
         // ---- Apple: a Mac app to play at once, and Xcode projects for iPhone/iPad and Apple TV ----
-        static readonly string[] AllScenes = { "BurrittAlley", "HopkinsNight", "HopkinsDay", "PalaceHotel" };
+        static readonly string[] AllScenes = { "BurrittAlley", "HopkinsNight", "HopkinsDay", "PalaceHotel", "StMark" };
         static string BuildsDir => Path.Combine(ProjectRoot, "Builds");
 
         static void Apple(BuildTarget target, BuildTargetGroup group, string path, string what)
