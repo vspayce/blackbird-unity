@@ -54,8 +54,35 @@ namespace BlackBird
 #endif
         }
 
+        Canvas tapCanvas;
+
+        // on a phone or tablet there is no View button: a small "Places" tab at the top of the screen opens the menu
+        void TapButton()
+        {
+            bool touch = Application.isMobilePlatform && Application.platform != RuntimePlatform.tvOS;
+            if (!touch) return;
+            if (!tapCanvas)
+            {
+                EnsureEventSystem();
+                if (!UIKit.serif) UIKit.serif = Hud.I && Hud.I.serif ? Hud.I.serif : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                var go = new GameObject("PlacesTab", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+                go.transform.SetParent(transform, false);
+                tapCanvas = go.GetComponent<Canvas>(); tapCanvas.renderMode = RenderMode.ScreenSpaceOverlay; tapCanvas.sortingOrder = 39;
+                var sc = go.GetComponent<CanvasScaler>(); sc.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                sc.referenceResolution = new Vector2(1280, 720); sc.matchWidthOrHeight = 1f;
+                var safe = UIKit.Rect("Safe", go.transform); safe.gameObject.AddComponent<SafeArea>();
+                var r = UIKit.Panel(safe, "Tab", new Color(0.03f, 0.04f, 0.05f, 0.75f));
+                UIKit.Place(r, new Vector2(0.5f, 1f), new Vector2(0, -10), new Vector2(150, 44));
+                r.gameObject.AddComponent<Button>().onClick.AddListener(() => { if (!open) Open(); });
+                var t = UIKit.Label(r, "Label", 22, TextAnchor.MiddleCenter, UIKit.Gold); UIKit.Stretch(t.rectTransform, 0, 0, 0, 0);
+                t.text = "Places";
+            }
+            tapCanvas.enabled = !open;
+        }
+
         void Update()
         {
+            TapButton();
             var pad = Gamepad.current; var kb = Keyboard.current;
             bool toggle = (pad != null && pad.selectButton.wasPressedThisFrame) || (kb != null && kb.pKey.wasPressedThisFrame);
             if (!open)
