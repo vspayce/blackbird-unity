@@ -4,7 +4,8 @@
 #
 #   Tools/apple/testflight.sh tvOS      (or iOS)
 #
-# Needs Tools/apple/team.txt (the paid team's ID). With an App Store Connect API key it runs unattended:
+# The archive is left unsigned (a development profile would need a registered iPhone); the export signs it for
+# the App Store. Needs Tools/apple/team.txt (the paid team's ID). With an App Store Connect API key it runs unattended:
 # put AuthKey_<KEYID>.p8 in Tools/apple/ (it is git-ignored) and the issuer ID in Tools/apple/issuer.txt.
 # Without one, xcodebuild uses the Apple ID signed in to Xcode.
 set -euo pipefail
@@ -27,7 +28,7 @@ fi
 rm -rf "$ARCHIVE" "$EXPORT"
 xcodebuild -project "$PROJ" -scheme Unity-iPhone -configuration Release -destination "$DEST" \
   -archivePath "$ARCHIVE" -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"} \
-  DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic archive > "Builds/$PLATFORM-archive.log" 2>&1 \
+  DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" archive > "Builds/$PLATFORM-archive.log" 2>&1 \
   || { grep -E "error:|ARCHIVE FAILED" "Builds/$PLATFORM-archive.log" | head -20; exit 1; }
 echo "archived $ARCHIVE"
 
