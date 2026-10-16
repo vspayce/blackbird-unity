@@ -58,12 +58,18 @@ namespace BlackBird
                     if (state.Has(hiddenSpotIds[i]) && hiddenBySpot[i] && hiddenBySpot[i].TryGetComponent<HiddenDetail>(out var h)) h.found = true;
             Hud.I.CaseControls(true);
             Refresh();
-            Hud.I.Narrate("Holmes", resumed && state.clues.Count > data.startClues.Length ? "Where were we, Watson? Ah yes." : data.opening);
+            // the chapter's card first, then Holmes speaks
+            bool back = resumed && state.clues.Count > data.startClues.Length;
+            mode = Mode.Screen;
+            void Begin() { mode = Mode.Explore; Hud.I.Narrate("Holmes", back ? "Where were we, Watson? Ah yes." : data.opening); }
+            if (!ChapterCard.Show(caseId, back, Begin)) Begin();
         }
 
         void Refresh()
         {
-            Hud.I.SetObjective(data.title, state.Objective());
+            var objective = state.Objective();
+            state.NoteLead(objective);
+            Hud.I.SetObjective(data.title, objective);
             Hud.I.SetCounter($"Clues {state.clues.Count} / {data.clues.Count}");
         }
 
