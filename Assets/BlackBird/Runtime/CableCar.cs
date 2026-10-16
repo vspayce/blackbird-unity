@@ -35,7 +35,7 @@ namespace BlackBird
             var rb = go.AddComponent<Rigidbody>(); rb.isKinematic = true;
             glow = new GameObject("CarLamp").AddComponent<Light>();
             glow.type = LightType.Point; glow.color = new Color(1f, 0.82f, 0.54f); glow.range = 9f; glow.intensity = 0;
-            glow.lightmapBakeType = LightmapBakeType.Realtime; glow.shadows = LightShadows.None;
+            glow.shadows = LightShadows.None;
         }
 
         void Update()
