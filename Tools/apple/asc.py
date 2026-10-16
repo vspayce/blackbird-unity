@@ -30,7 +30,15 @@ def token():
     return (msg + b'.' + _b64(raw)).decode()
 
 
-def call(method, path, body=None):
+def call(method, path, body=None, tries=4):
+    for k in range(tries):
+        r = _call(method, path, body)
+        if not (isinstance(r, dict) and r.get('error', 0) >= 500) or k == tries - 1:
+            return r
+        time.sleep(3 * (k + 1))         # Apple's API has its moments
+
+
+def _call(method, path, body=None):
     req = urllib.request.Request('https://api.appstoreconnect.apple.com' + path, method=method,
                                  data=json.dumps(body).encode() if body is not None else None,
                                  headers={'Authorization': 'Bearer ' + token(), 'Content-Type': 'application/json'})
