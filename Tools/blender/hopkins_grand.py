@@ -56,6 +56,10 @@ def main():
     if HW:
         HW.apply(K, G)
         G.grand_hall2(HW)
+    if G:
+        import hopkins_skirt
+        importlib.reload(hopkins_skirt)
+        print('skirt cells', hopkins_skirt.build())   # ground under the neighbours, falling away down the hill
     W = HW.W if HW else (lambda p: p)
     def rect(x0, x1, z0, z1):
         a, b = W((x0, 0, z0)), W((x1, 0, z1))

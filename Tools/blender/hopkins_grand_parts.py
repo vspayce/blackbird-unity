@@ -133,6 +133,8 @@ def patch():
     def wall(a, b, y0, y1, openings=(), *args, **kw):
         if tuple(a) == (-3, 10) and tuple(b) == (3, 10) and y0 == 0:
             openings = [(3, VEST_ARCH[0], 0, VEST_ARCH[1])]
+        if _stacked(openings):
+            return stacked_wall(a, b, y0, y1, openings, *args, **kw)
         return orig_wall(a, b, y0, y1, openings, *args, **kw)
     def lining(F, L, side, openings, *args, **kw):
         if is_vest_hall(F, L):
@@ -144,6 +146,34 @@ def patch():
             return                                   # no doors in the great arch
         return orig_leaves(F, t, w, h, side, *args, **kw)
     K.wall, K.lining, K.door_leaves = wall, lining, door_leaves
+
+
+def _stacked(openings):
+    """Openings one above another (a ground-floor window under an upstairs one)? The prototype's wall() lays each
+    opening's solid below and above it full height, so the second opening's infill closes the first."""
+    iv = sorted((t - w / 2, t + w / 2) for t, w, ob, ot in openings)
+    return any(b0 < a1 - 1e-6 for (a0, a1), (b0, b1) in zip(iv, iv[1:]))
+
+
+def stacked_wall(a, b, y0, y1, openings=(), mat='plaster', thick=None, solid=True):
+    """K.wall for openings that share columns: the wall is cut into vertical strips at every opening edge, and each
+    strip is solid wherever no opening crosses it."""
+    thick = K.T if thick is None else thick
+    a, b = Vector((a[0], 0, a[1])), Vector((b[0], 0, b[1]))
+    d = b - a; L = d.length; r = d.normalized(); n = Vector((-r.z, 0, r.x))
+    F = frame(a, r, n)
+    ops = [(max(0.0, t - w / 2), min(L, t + w / 2), ob, ot) for t, w, ob, ot in openings if t - w / 2 < L]
+    edges = sorted({0.0, L} | {u for o in ops for u in o[:2]})
+    for u0, u1 in zip(edges, edges[1:]):
+        if u1 - u0 < 1e-4: continue
+        holes = sorted((max(y0, ob), min(y1, ot)) for o0, o1, ob, ot in ops if o0 <= u0 + 1e-6 and o1 >= u1 - 1e-6 and ot > y0 and ob < y1)
+        v = y0
+        for h0, h1 in holes + [(y1, y1)]:
+            if h0 > v + 1e-4:
+                lbox(F, mat, u0, u1, v, h0, -thick / 2, thick / 2)
+                if solid and (h0 > 0.5 or not holes): K.collide_seg(F, u0, u1, v, h0, thick)
+            v = max(v, h1)
+    return F, L
 
 
 # ---- pieces ----------------------------------------------------------------------------------------------

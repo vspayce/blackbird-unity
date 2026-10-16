@@ -91,6 +91,12 @@ namespace BlackBird.EditorTools
                 if (n.StartsWith("glass") || n == "stained" || n == "lamp_glass")
                     mf.GetComponent<Renderer>().shadowCastingMode = ShadowCastingMode.Off;
                 if (n == "lamp_glass" || n == "candle" || n.StartsWith("glass_lit")) continue;
+                if (n == "skirt")
+                {
+                    // the ground under the neighbourhood: big and plain, so few texels and no shadow of its own
+                    var r = mf.GetComponent<Renderer>(); r.shadowCastingMode = ShadowCastingMode.Off;
+                    var so = new SerializedObject(r); so.FindProperty("m_ScaleInLightmap").floatValue = 0.12f; so.ApplyModifiedPropertiesWithoutUndo();
+                }
                 mf.gameObject.AddComponent<MeshCollider>().sharedMesh = mf.sharedMesh;
             }
             var boxes = new GameObject("Colliders").transform;
