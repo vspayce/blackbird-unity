@@ -127,8 +127,20 @@ namespace BlackBird.EditorTools
             }
             if (Get<bool>(ch, "busy")) { if (++idle > 600) End("stuck: busy with nothing on screen"); return; }
             idle = 0;
+            // Chapter V's tail: keep well back from the boy, out of his sight but not losing him
+            var tail = ch.GetComponent<Tail>();
+            if (tail && tail.Phase == "lead" && data.tail != null)
+            {
+                var who = ch.cast.First(c => c.id == data.tail.who).walker.transform;
+                var back = who.position - ch.holmes.transform.position; back.y = 0;
+                float gap = (data.tail.sight + data.tail.lose) / 2;
+                if (back.magnitude > 0.5f && Mathf.Abs(back.magnitude - gap) > 1.5f)
+                    ch.PlaceHolmes(who.position - back.normalized * gap, Quaternion.LookRotation(back).eulerAngles.y);
+                if (++tailFrames % 300 == 0) Say($"tailing: {back.magnitude:0} m behind, suspicion {tail.Suspicion:0.00}");
+                return;
+            }
             foreach (var s in data.spots)
-                if ((bool)Call(ch, "SpotOpen", s) && s.AllClues().Length > 0)
+                if ((bool)Call(ch, "SpotOpen", s) && (s.AllClues().Length > 0 || (s.@event != null && (s.needs == null || s.needs.All(st.Has)))))
                 {
                     Say("examine: " + (s.label ?? s.id));
                     Call(ch, "UseSpot", s);
@@ -149,6 +161,7 @@ namespace BlackBird.EditorTools
             End($"stuck: nothing left to do. Objective: {st.Objective()}. Clues {string.Join(",", st.clues)}; deductions {string.Join(",", st.deductions)}; events {string.Join(",", st.events)}");
         }
         static PresentDef pendingPresent;
+        static int tailFrames;
         static int palaceTried = -1;
 
         // topics still worth choosing, as CaseUI.Menu shows them
