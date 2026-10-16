@@ -72,6 +72,13 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     os.makedirs(os.path.join(DST, 'Art~'), exist_ok=True)   # (Unity ignores folders ending in ~)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(DST, 'Art~', 'hopkins_grand.blend'))
+    # the ground skirt goes out on its own, with lightmap UVs made here: it is one big even grid, and Unity's
+    # unwrapper spends many minutes on it inside the set
+    sk = bpy.data.objects.get('skirt')
+    if sk:
+        import hopkins_skirt
+        ground = os.path.join(DST, 'Assets', 'BlackBird', 'Art', 'Ground')
+        hopkins_skirt.export(sk, os.path.join(ground, 'hopkins_ground.fbx'), UX)
     UX.export_set(os.path.join(OUT, 'hopkins.fbx'), os.path.join(OUT, 'Textures'), 'hopkins')
     data = dict(
         lamps=[[round(v, 3) for v in p] for p in K.LAMPS],

@@ -89,3 +89,27 @@ def build(mat='skirt'):
             if f.normal.y < 0: f.normal_flip()
             n += 1
     return n
+
+
+def export(obj, path, UX):
+    """Write the skirt to its own FBX (UV0 tiles the grass; UV1, for the lightmap, spans the whole grid once), then
+    take it out of the scene so the set's export leaves it alone."""
+    import os, bpy
+    me = obj.data
+    xs = [v.co.x for v in me.vertices]; zs = [v.co.z for v in me.vertices]
+    x0, x1, z0, z1 = min(xs), max(xs), min(zs), max(zs)
+    while len(me.uv_layers) < 2:
+        me.uv_layers.new()
+    lm = me.uv_layers[1]
+    for loop in me.loops:
+        co = me.vertices[loop.vertex_index].co
+        lm.data[loop.index].uv = ((co.x - x0) / (x1 - x0), (co.z - z0) / (z1 - z0))
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    bpy.context.view_layer.update()
+    mw = obj.matrix_world.copy()
+    obj.parent = None
+    obj.matrix_world = mw
+    UX.select_only([obj])
+    bpy.ops.export_scene.fbx(filepath=path, use_selection=True, object_types={'MESH'}, bake_anim=False, **UX.COMMON)
+    bpy.data.objects.remove(obj, do_unlink=True)
+    print('exported', path)

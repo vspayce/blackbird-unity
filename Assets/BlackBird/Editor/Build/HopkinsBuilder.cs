@@ -79,6 +79,14 @@ namespace BlackBird.EditorTools
             var set = (GameObject)PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath<GameObject>(Model));
             set.name = "Hopkins";
             CheckAxes(set, data);
+            // the ground under the neighbourhood, exported on its own (Tools/blender/hopkins_skirt.py)
+            var groundAsset = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "/Art/Ground/hopkins_ground.fbx");
+            if (groundAsset)
+            {
+                var ground = (GameObject)PrefabUtility.InstantiatePrefab(groundAsset);
+                ground.name = "skirt";
+                ground.transform.SetParent(set.transform, true);
+            }
             TuneMaterials(set, day);
             var flags = StaticEditorFlags.ContributeGI | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic | StaticEditorFlags.ReflectionProbeStatic | StaticEditorFlags.BatchingStatic;
             foreach (var t in set.GetComponentsInChildren<Transform>(true)) GameObjectUtility.SetStaticEditorFlags(t.gameObject, flags);
