@@ -217,7 +217,7 @@ namespace BlackBird
         PortraitDef portrait; Walker portraitWho;
         void EnterPortrait(string id, PortraitDef def)
         {
-            portrait = def;
+            portrait = def; portraitDone = false;
             portraitWho = cast.First(c => c.id == id).walker;
             var p = portraitWho.transform;
             var toH = holmes.transform.position - p.position; toH.y = 0;
@@ -235,12 +235,17 @@ namespace BlackBird
             }
         }
 
-        void PortraitUpdate() { GameInput.I.allowMouseCapture = false; }
-
-        void PortraitFound(PortraitSpot s)
+        void PortraitUpdate()
         {
-            Give(s.clue);
-            if (!portrait.spots.All(x => state.Has(x.clue)) || ui.Open) return;
+            GameInput.I.allowMouseCapture = false;
+            if (!portraitDone && portrait.spots.All(x => state.Has(x.clue)) && !ui.Open) { portraitDone = true; PortraitSheet(); }
+        }
+        bool portraitDone;
+
+        void PortraitFound(PortraitSpot s) => Give(s.clue);   // the sheet opens once every mark is found (PortraitUpdate)
+
+        void PortraitSheet()
+        {
             var def = portrait; var id = cast.First(c => c.walker == portraitWho).id;
             Hud.I.ClearMarks();
             ui.ProfileSheet(data.people[id].name, def.lines, () =>
