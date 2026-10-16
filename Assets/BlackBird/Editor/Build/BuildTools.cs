@@ -74,7 +74,7 @@ namespace BlackBird.EditorTools
             {
                 // each player is built in its own staging folder and then copied into place: building the next one
                 // cleans up the previous build's output wherever it was written
-                var stage = Path.Combine(ProjectRoot, "Library", "WebGLStage", folder);
+                var stage = Path.Combine(ProjectRoot, "Builds", "WebGLStage", folder);   // (Unity refuses to build inside Library)
                 if (Directory.Exists(stage)) Directory.Delete(stage, true);
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
