@@ -56,8 +56,9 @@
       <button class="place" data-scene="alley"><img src="img/alley.jpg" alt=""><b>Burritt Alley</b><span>Chapter I · where Miles Archer fell</span></button>
       <button class="place" data-scene="hopkins"><img src="img/hopkins-night.jpg" alt=""><b>The Hopkins House</b><span>By night · gaslight and fog</span></button>
       <button class="place" data-scene="hopkins-day"><img src="img/hopkins-day.jpg" alt=""><b>The Hopkins House</b><span>By day · Muybridge's city, 1878</span></button>
+      <button class="place" data-scene="palace"><img src="img/palace.jpg" alt=""><b>The Palace Hotel</b><span>Chapter II · the Levantine</span></button>
     </div>
-    <div class="keys">In the game: 1 · 2 · 3 change place, Tab turns the house from night to day</div>
+    <div class="keys">In the game: 1 · 2 · 3 · 4 change place, Tab turns the house from night to day</div>
   </div>
   <a id="menu" href="./">Places</a>
   <div id="loader" style="display:none">
@@ -109,10 +110,10 @@
       if (e.reason && (e.reason.name === 'NotAllowedError' || /pointer ?lock/i.test(String(e.reason)))) e.preventDefault();
     });
     // Pick a place on the splash (or come straight in with ?scene=…); the game reads the scene from the URL.
-    const names = { alley: 'Burritt Alley', hopkins: 'The Hopkins House, by night', 'hopkins-day': 'The Hopkins House, by day' };
+    const names = { alley: 'Burritt Alley', hopkins: 'The Hopkins House, by night', 'hopkins-day': 'The Hopkins House, by day', palace: 'The Palace Hotel' };
     const splash = document.querySelector('#splash');
     // Each place is its own download in its own folder (alley/, hopkins/); the root holds only this splash page.
-    const FOLDER = { alley: 'alley', hopkins: 'hopkins', 'hopkins-day': 'hopkins' };
+    const FOLDER = { alley: 'alley', hopkins: 'hopkins', 'hopkins-day': 'hopkins', palace: 'palace' };
     const here = location.pathname.replace(/[^/]*$/, '').split('/').filter(Boolean).pop() || '';
     const inPlayer = Object.values(FOLDER).includes(here);
     const root = inPlayer ? '../' : './';

@@ -1,5 +1,5 @@
 // Moving between the places in this build: a link (?scene=hopkins, ?scene=hopkins-day, ?scene=alley) opens
-// that place, and in the game the number keys do: 1 Burritt Alley, 2 the Hopkins house by night, 3 by day.
+// that place, and in the game the number keys do: 1 Burritt Alley, 2 the Hopkins house by night, 3 by day, 4 the Palace Hotel (Chapter II).
 // Tab switches the Hopkins house between night and day.
 // It installs itself when the game starts, so it works whichever scene opens first and whatever that scene holds.
 using UnityEngine;
@@ -11,7 +11,7 @@ namespace BlackBird
     public class SceneSwitch : MonoBehaviour
     {
         static SceneSwitch instance;
-        static readonly string[] Scenes = { "BurrittAlley", "HopkinsNight", "HopkinsDay" };
+        static readonly string[] Scenes = { "BurrittAlley", "HopkinsNight", "HopkinsDay", "PalaceHotel" };
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Install()
@@ -34,7 +34,7 @@ namespace BlackBird
             var v = url.Substring(q + 6).Split('&', '#')[0].ToLowerInvariant();
             return v == "hopkins" || v == "hopkins-night" || v == "night" ? "HopkinsNight"
                  : v == "hopkins-day" || v == "day" ? "HopkinsDay"
-                 : v == "alley" ? "BurrittAlley" : null;
+                 : v == "alley" ? "BurrittAlley" : v == "palace" ? "PalaceHotel" : null;
         }
 
         void Awake()
@@ -58,6 +58,7 @@ namespace BlackBird
             if (kb.digit1Key.wasPressedThisFrame) Go(Scenes[0]);
             if (kb.digit2Key.wasPressedThisFrame) Go(Scenes[1]);
             if (kb.digit3Key.wasPressedThisFrame) Go(Scenes[2]);
+            if (kb.digit4Key.wasPressedThisFrame) Go(Scenes[3]);
             if (kb.tabKey.wasPressedThisFrame)
             {
                 var cur = SceneManager.GetActiveScene().name;
@@ -69,7 +70,7 @@ namespace BlackBird
         static readonly System.Collections.Generic.Dictionary<string, (string key, string folder)> WebPlaces =
             new System.Collections.Generic.Dictionary<string, (string, string)>
             {
-                ["BurrittAlley"] = ("alley", "alley"), ["HopkinsNight"] = ("hopkins", "hopkins"), ["HopkinsDay"] = ("hopkins-day", "hopkins"),
+                ["BurrittAlley"] = ("alley", "alley"), ["HopkinsNight"] = ("hopkins", "hopkins"), ["HopkinsDay"] = ("hopkins-day", "hopkins"), ["PalaceHotel"] = ("palace", "palace"),
             };
 #if UNITY_WEBGL && !UNITY_EDITOR
         [System.Runtime.InteropServices.DllImport("__Internal")] static extern void BB_GoTo(string url);

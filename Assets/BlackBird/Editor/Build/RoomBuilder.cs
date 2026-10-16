@@ -24,12 +24,13 @@ namespace BlackBird.EditorTools
         public class Spec
         {
             public string set, scene, caseId, next;
+            public float stepIn;                  // start this far into the room from the set's spawn (the web's camera sat closer)
             public bool daylight;                 // a morning interior: soft daylight and dimmed gas
             public float fog = 0.02f;
             public Color fogColor = new Color(0.55f, 0.58f, 0.62f);
         }
 
-        public static readonly Spec Palace = new Spec { set = "palace", scene = "PalaceHotel", caseId = "cairo", next = "StMark", daylight = true };
+        public static readonly Spec Palace = new Spec { set = "palace", scene = "PalaceHotel", caseId = "cairo", next = "StMark", daylight = true, stepIn = 1.6f };
         public static readonly Spec StMark = new Spec { set = "stmark", scene = "StMark", caseId = "brigid", next = "HopkinsNight", daylight = true };
 
         [MenuItem("Black Bird/Chapters/Build Chapter II · Palace Hotel", priority = 30)] public static void BuildPalace() => Build(Palace);
@@ -153,6 +154,7 @@ namespace BlackBird.EditorTools
             var sp = (Dictionary<string, object>)data["spawn"]; var spos = ((List<object>)sp["pos"]).Select(Fv).ToArray();
             ch.spawn = Web.W(spos[0], spos[1], spos[2]);
             ch.spawnYaw = Mathf.Repeat(180f - (float)(double)sp["yaw"] * Mathf.Rad2Deg, 360f);
+            ch.spawn += Quaternion.Euler(0, ch.spawnYaw, 0) * Vector3.forward * spec.stepIn;
             if (sp.TryGetValue("watson", out var wo)) { var a = ((List<object>)wo).Select(Fv).ToArray(); ch.watsonOffset = new Vector3(a[0], a[1], -a[2]); }
             systems.AddComponent<SceneSwitch>();
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
