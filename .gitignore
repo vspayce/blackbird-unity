@@ -37,3 +37,6 @@ crashlytics-build.properties
 # Blender working files (large; rebuilt by the scripts in Tools/blender)
 /Art~/
 /Builds/
+
+# App Store Connect API keys never go in git
+/Tools/apple/AuthKey_*.p8

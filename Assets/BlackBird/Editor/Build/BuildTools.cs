@@ -114,6 +114,7 @@ namespace BlackBird.EditorTools
             if (target != BuildTarget.StandaloneOSX) PlayerSettings.SetScriptingBackend(id, ScriptingImplementation.IL2CPP);   // (the Mac app stays on Mono: no Xcode needed)
             if (target == BuildTarget.tvOS) { PlayerSettings.tvOS.requireExtendedGameController = true; PlayerSettings.tvOS.targetOSVersionString = "17.0"; }   // played with a controller
             if (target == BuildTarget.iOS) PlayerSettings.iOS.targetOSVersionString = "16.0";
+            AppleRelease.Prepare(target);
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = AllScenes.Select(n => $"Assets/BlackBird/Scenes/{n}.unity").ToArray(),
