@@ -139,9 +139,9 @@ def main():
     src, dst, only = args()
     if not only or 'burritt' in only:
         export_set(src, dst)
-    for n in CAST:
-        if not only or n in only:
-            export_character(src, dst, n)
+    # any other name on the command line is a character too (the later chapters' people)
+    for n in (CAST if not only else [n for n in only if n != 'burritt']):
+        export_character(src, dst, n)
 
 
 main()
