@@ -144,11 +144,11 @@ namespace BlackBird
             var safe = UIKit.Rect("Safe", go.transform); safe.gameObject.AddComponent<SafeArea>();
 
             var card = UIKit.Panel(safe, "Card", UIKit.Dark);
-            UIKit.Place(card, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(620, 560));
-            var title = UIKit.Label(card, "Title", 40, TextAnchor.UpperCenter, UIKit.Gold); UIKit.Stretch(title.rectTransform, 24, 22, 24, 480);
-            title.text = "Places";
+            UIKit.Place(card, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(620, 690));
+            var title = UIKit.Label(card, "Title", 40, TextAnchor.UpperCenter, UIKit.Gold); UIKit.Stretch(title.rectTransform, 24, 22, 24, 610);
+            title.text = "Places & sound";
             var hint = UIKit.Label(card, "Hint", 17, TextAnchor.LowerCenter, new Color(UIKit.Ink.r, UIKit.Ink.g, UIKit.Ink.b, 0.6f), UIKit.type);
-            UIKit.Stretch(hint.rectTransform, 24, 500, 24, 16);
+            UIKit.Stretch(hint.rectTransform, 24, 630, 24, 16);
             hint.text = "A choose   ·   B close   ·   View / P opens this anywhere";
 
             list = UIKit.Rect("List", card); UIKit.Stretch(list, 40, 86, 40, 56);
@@ -177,6 +177,22 @@ namespace BlackBird
                 b.navigation = nav;
                 prev = b;
             }
+            // sound: the background (wind, foghorn, bells) and the effects, each Full / Low / Off
+            Button SoundRow(string label, System.Func<float> get, System.Action<float> set)
+            {
+                Button b = null;
+                b = UIKit.Button(list, $"{label}: {Sound.Word(get())}", () =>
+                {
+                    set(Sound.Next(get()));
+                    b.GetComponentInChildren<Text>().text = $"{label}: {Sound.Word(get())}";
+                }, new Color(0.1f, 0.09f, 0.08f, 0.95f), UIKit.Ink, 20);
+                var nav = new Navigation { mode = Navigation.Mode.Explicit };
+                if (prev) { nav.selectOnUp = prev; var pn = prev.navigation; pn.selectOnDown = b; prev.navigation = pn; }
+                b.navigation = nav; prev = b;
+                return b;
+            }
+            SoundRow("Background sound", () => Sound.Ambience, v => Sound.Ambience = v);
+            SoundRow("Footsteps and effects", () => Sound.Effects, v => Sound.Effects = v);
             var close = UIKit.Button(list, "Back to the game", Close, new Color(0.08f, 0.08f, 0.08f, 0.95f), UIKit.Ink, 20);
             if (prev) { var cn = new Navigation { mode = Navigation.Mode.Explicit, selectOnUp = prev }; close.navigation = cn; var pn = prev.navigation; pn.selectOnDown = close; prev.navigation = pn; }
             if (!first) first = close.gameObject;
@@ -184,7 +200,7 @@ namespace BlackBird
             if (current)
             {
                 int idx = current.transform.GetSiblingIndex() + 1;
-                first = (idx < list.childCount - 1 ? list.GetChild(idx) : list.GetChild(0)).gameObject;
+                first = (idx < list.childCount - 3 ? list.GetChild(idx) : list.GetChild(0)).gameObject;   // (the last three are sound and Back)
             }
         }
     }

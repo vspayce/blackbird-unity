@@ -85,7 +85,7 @@ namespace BlackBird
             var cam = Camera.main;
             bool under = cam && Physics.Raycast(cam.transform.position + Vector3.up * 0.3f, Vector3.up, 45f, ~0, QueryTriggerInteraction.Ignore);
             indoor = Mathf.MoveTowards(indoor, under ? 1 : 0, dt * 0.8f);
-            float wind = (night ? 0.55f : 0.4f) * master;
+            float wind = (night ? 0.55f : 0.4f) * master * Ambience;
             windOut.volume = wind * (1 - indoor);
             windIn.volume = wind * 0.9f * indoor;
             if (!windOut.isPlaying && Time.frameCount % 60 == 0) { windOut.Play(); windIn.Play(); }
@@ -93,22 +93,32 @@ namespace BlackBird
             if (night)
             {
                 hornT -= dt;
-                if (hornT <= 0) { hornT = 22f + Random.Range(0f, 14f); cues.PlayOneShot(horn, (indoor > 0.5f ? 0.35f : 0.8f) * master); }
+                if (hornT <= 0) { hornT = 22f + Random.Range(0f, 14f); cues.PlayOneShot(horn, (indoor > 0.5f ? 0.35f : 0.8f) * master * Ambience); }
             }
             else
             {
                 bellT -= dt;
-                if (bellT <= 0) { bellT = 35f + Random.Range(0f, 40f); cues.PlayOneShot(bell, (indoor > 0.5f ? 0.15f : 0.4f) * master); }
+                if (bellT <= 0) { bellT = 35f + Random.Range(0f, 40f); cues.PlayOneShot(bell, (indoor > 0.5f ? 0.15f : 0.4f) * master * Ambience); }
             }
             var f = Focus.I;
             bool on = f && f.On;
-            if (on != lastFocus) { lastFocus = on; cues.PlayOneShot(on ? focusOn : focusOff, 0.7f * master); }
+            if (on != lastFocus) { lastFocus = on; cues.PlayOneShot(on ? focusOn : focusOff, 0.7f * master * Effects); }
         }
 
-        public static void Bell(float vol = 0.5f) { if (I) I.cues.PlayOneShot(I.bell, vol); }
-        public static void Clue() { if (I) I.cues.PlayOneShot(I.clue, 0.8f); }
-        public static void Deduce() { if (I) I.cues.PlayOneShot(I.deduce, 0.8f); }
-        public static void Wrong() { if (I) I.cues.PlayOneShot(I.wrong, 0.8f); }
+        public static void Bell(float vol = 0.5f) { if (I) I.cues.PlayOneShot(I.bell, vol * Effects); }
+        public static void Clue() { if (I) I.cues.PlayOneShot(I.clue, 0.8f * Effects); }
+        public static void Deduce() { if (I) I.cues.PlayOneShot(I.deduce, 0.8f * Effects); }
+        public static void Wrong() { if (I) I.cues.PlayOneShot(I.wrong, 0.8f * Effects); }
+
+        // ---- the player's sound settings (Places menu): the background (wind, foghorn, church bells) and the
+        // effects (steps, cues), each Full, Low or Off, kept between sessions ----
+        static float? ambience, effects;
+        public static float Ambience { get => ambience ??= Pref("bb.sound.ambience"); set { ambience = value; PlayerPrefs.SetFloat("bb.sound.ambience", value); PlayerPrefs.Save(); } }
+        public static float Effects { get => effects ??= Pref("bb.sound.effects"); set { effects = value; PlayerPrefs.SetFloat("bb.sound.effects", value); PlayerPrefs.Save(); } }
+        static float Pref(string k) { try { return PlayerPrefs.GetFloat(k, 1f); } catch { return 1f; } }
+        /// Full → Low → Off → Full
+        public static float Next(float v) => v > 0.7f ? 0.35f : v > 0.01f ? 0f : 1f;
+        public static string Word(float v) => v > 0.7f ? "Full" : v > 0.01f ? "Low" : "Off";
 
         // ---- making the sounds ----
         AudioSource Loop(AudioClip c, float vol)

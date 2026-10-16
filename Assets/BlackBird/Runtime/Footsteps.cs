@@ -87,7 +87,7 @@ namespace BlackBird
             lastClip = k;
             src.pitch = Random.Range(0.92f, 1.06f);
             float vol = Volume.TryGetValue(surface, out var v) ? v : 0.55f;
-            src.PlayOneShot(set[k], vol * Mathf.Lerp(0.85f, 1.1f, Mathf.InverseLerp(0.8f, 2.6f, speed)));   // a brisk step lands harder
+            src.PlayOneShot(set[k], Sound.Effects * vol * Mathf.Lerp(0.85f, 1.1f, Mathf.InverseLerp(0.8f, 2.6f, speed)));   // a brisk step lands harder
         }
     }
 }

@@ -33,7 +33,7 @@ namespace BlackBird
         public bool StickActive { get; private set; }
         public Vector2 StickCenter { get; private set; }
         public Vector2 StickKnob { get; private set; }
-        public float StickRadius => Screen.dpi > 0 ? Screen.dpi * 0.45f : 80f;
+        public float StickRadius => Screen.dpi > 0 ? Screen.dpi * 0.315f : 56f;   // 30% smaller than it was (0.45 in)
 
         InputAction move, turn, look, act, focus, back, hurry, book, palace;
         int stickFinger = -1;
