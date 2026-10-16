@@ -7,7 +7,8 @@ email, and the builds sent for Beta App Review. Safe to run again (it skips what
 
 Settings it needs once (Tools/apple/beta.json, git-ignored): feedback email, review contact name and phone.
 """
-import json, os, sys
+import functools, json, os, sys
+print = functools.partial(print, flush=True)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from asc import call, app_id
 
@@ -49,6 +50,14 @@ def status(aid):
 
 def go(aid, emails):
     cfg = settings()
+    if cfg.get('feedbackEmail'):
+        _details(aid, cfg)
+    else:
+        print('no Tools/apple/beta.json yet: skipping the beta description and review contact')
+    _rest(aid, emails)
+
+
+def _details(aid, cfg):
     # the beta description and feedback address, shown to testers
     locs = data(call('GET', f'/v1/apps/{aid}/betaAppLocalizations'))
     attrs = {'description': DESCRIPTION, 'feedbackEmail': cfg['feedbackEmail']}
@@ -63,6 +72,9 @@ def go(aid, emails):
         'contactFirstName': cfg['firstName'], 'contactLastName': cfg['lastName'], 'contactPhone': cfg['phone'],
         'contactEmail': cfg['feedbackEmail'], 'demoAccountRequired': False,
         'notes': 'A single-player detective game; no account or sign-in. Controls: touch on iPhone/iPad, a game controller on Apple TV.'}}})
+
+
+def _rest(aid, emails):
     # the external group, with a public link
     groups = data(call('GET', f'/v1/apps/{aid}/betaGroups'))
     ext = next((g for g in groups if not g['attributes']['isInternalGroup']), None)
