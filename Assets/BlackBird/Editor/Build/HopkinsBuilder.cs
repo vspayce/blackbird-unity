@@ -335,7 +335,7 @@ namespace BlackBird.EditorTools
         {
             var data = CaseData.Load("gutman");
             var ch = systems.AddComponent<Chapter>();
-            ch.caseId = "gutman"; ch.warp = "hopkins"; ch.nextScene = day ? null : "Kearny";
+            ch.caseId = "gutman"; ch.warp = "hopkins"; ch.nextScene = "Kearny";
             ch.holmes = holmes; ch.watson = watson; ch.cameraRig = rig;
             var cast = new List<CastMember>();
             foreach (var p in data.people.Values.Where(p => p.id != "watson" && p.pos != null))
