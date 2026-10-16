@@ -51,10 +51,21 @@ namespace BlackBird.EditorTools
             ("hopkins", new[] { "HopkinsNight", "HopkinsDay" }),   // together, so Tab turns night to day at once
         };
 
+        // The editor must be switched to a platform before building for it (the scripts are compiled per platform). The
+        // switch reimports and recompiles, so it is its own step: the first run switches, the next one builds.
+        static bool OnTarget(BuildTargetGroup group, BuildTarget target, string what)
+        {
+            if (EditorUserBuildSettings.activeBuildTarget == target) return true;
+            Debug.LogWarning($"[Black Bird] Switching the editor to {target} (this takes a while). Run \"{what}\" again when it finishes.");
+            EditorUserBuildSettings.SwitchActiveBuildTarget(group, target);
+            return false;
+        }
+
         [MenuItem("Black Bird/Build WebGL", priority = 21)]
         public static void BuildWebGL()
         {
             ConfigurePlayer();
+            if (!OnTarget(BuildTargetGroup.WebGL, BuildTarget.WebGL, "Build WebGL")) return;
             var all = Groups.SelectMany(g => g.scenes).Select(n => $"Assets/BlackBird/Scenes/{n}.unity").ToArray();
             var missing = all.Where(p => !File.Exists(Path.Combine(ProjectRoot, p))).ToArray();
             if (missing.Length > 0) { Debug.LogError("[Black Bird] Build these scenes first: " + string.Join(", ", missing)); return; }
@@ -88,6 +99,7 @@ namespace BlackBird.EditorTools
         {
             ConfigurePlayer();
             if (!BuildPipeline.IsBuildTargetSupported(group, target)) { Debug.LogError($"[Black Bird] {what}: install the {target} module in Unity Hub first."); return; }
+            if (!OnTarget(group, target, what)) return;
             var id = UnityEditor.Build.NamedBuildTarget.FromBuildTargetGroup(group);
             PlayerSettings.SetApplicationIdentifier(id, "com.vspayce.blackbird");
             PlayerSettings.bundleVersion = "0.1";
