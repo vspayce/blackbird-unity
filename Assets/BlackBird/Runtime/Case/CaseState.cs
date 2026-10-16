@@ -12,6 +12,7 @@ namespace BlackBird
         public readonly CaseData data;
         public List<string> clues = new List<string>(), deductions = new List<string>(), talked = new List<string>(),
             reads = new List<string>(), events = new List<string>();
+        public List<string> leads = new List<string>();         // the lines of inquiry so far, oldest first (the last is the open one)
         public Dictionary<string, bool> calls = new Dictionary<string, bool>();   // a challenge's first call: right or wrong
         public bool solved;
         public int misses, wrongAccusations;
@@ -22,7 +23,7 @@ namespace BlackBird
 
         public void Reset()
         {
-            clues.Clear(); deductions.Clear(); talked.Clear(); reads.Clear(); events.Clear(); calls.Clear();
+            clues.Clear(); deductions.Clear(); talked.Clear(); reads.Clear(); events.Clear(); calls.Clear(); leads.Clear();
             solved = false; misses = wrongAccusations = 0;
             foreach (var c in data.startClues) if (!clues.Contains(c)) clues.Add(c);
         }
@@ -62,6 +63,15 @@ namespace BlackBird
                 ("False starts in the Mind Palace", misses.ToString()),
                 ("Wrong accusations", wrongAccusations.ToString()),
             });
+        }
+
+        /// Note the current line of inquiry; when it moves on, the old one counts as followed up.
+        public void NoteLead(string objective)
+        {
+            if (string.IsNullOrEmpty(objective) || (leads.Count > 0 && leads[leads.Count - 1] == objective)) return;
+            leads.Remove(objective);
+            leads.Add(objective);
+            Save();
         }
 
         // ---- what to do next ----
@@ -114,6 +124,7 @@ namespace BlackBird
             sb.Append("reads=").Append(string.Join(",", reads)).Append('\n');
             sb.Append("events=").Append(string.Join(",", events)).Append('\n');
             sb.Append("calls=").Append(string.Join(",", calls.Select(kv => kv.Key + ":" + (kv.Value ? 1 : 0)))).Append('\n');
+            sb.Append("leads=").Append(string.Join("|", leads.Select(l => l.Replace("|", "/").Replace("\n", " ")))).Append('\n');
             sb.Append("solved=").Append(solved ? 1 : 0).Append('\n');
             sb.Append("misses=").Append(misses).Append('\n');
             sb.Append("wrong=").Append(wrongAccusations).Append('\n');
@@ -139,6 +150,7 @@ namespace BlackBird
                     case "reads": reads = L(); break;
                     case "events": events = L(); break;
                     case "calls": foreach (var c in L()) { int j = c.LastIndexOf(':'); if (j > 0) calls[c.Substring(0, j)] = c.EndsWith("1"); } break;
+                    case "leads": leads = v.Split('|').Where(x => x.Length > 0).ToList(); break;
                     case "solved": solved = v == "1"; break;
                     case "misses": int.TryParse(v, out misses); break;
                     case "wrong": int.TryParse(v, out wrongAccusations); break;

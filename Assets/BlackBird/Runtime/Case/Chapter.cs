@@ -82,14 +82,21 @@ namespace BlackBird
             Presence();
             Hud.I.CaseControls(true);
             Refresh();
-            if (!resumed || state.talked.Count == 0)
+            bool fresh = !resumed || state.talked.Count == 0;
+            void Begin()
             {
-                busy = true;
-                var intro = data.intro.Select(o => o is string s ? new Line(null, s) : CaseData.ToLine(o)).ToList();
-                if (intro.Count > 0) ui.Lines(intro, () => { busy = false; Hud.I.Narrate("Holmes", data.opening); });
-                else { busy = false; Hud.I.Narrate("Holmes", data.opening); }
+                if (fresh)
+                {
+                    busy = true;
+                    var intro = data.intro.Select(o => o is string s ? new Line(null, s) : CaseData.ToLine(o)).ToList();
+                    if (intro.Count > 0) ui.Lines(intro, () => { busy = false; Hud.I.Narrate("Holmes", data.opening); });
+                    else { busy = false; Hud.I.Narrate("Holmes", data.opening); }
+                }
+                else { busy = false; Hud.I.Narrate("Holmes", "Where were we, Watson?"); }
             }
-            else Hud.I.Narrate("Holmes", "Where were we, Watson?");
+            // the chapter's card first (its number, name and a tip), then the story
+            busy = true;
+            if (!ChapterCard.Show(caseId, !fresh, Begin)) Begin();
         }
 
         /// A position from the case data, in the web game's coordinates of this set.
@@ -113,7 +120,9 @@ namespace BlackBird
 
         void Refresh()
         {
-            Hud.I.SetObjective(data.title, state.Objective());
+            var objective = state.Objective();
+            state.NoteLead(objective);
+            Hud.I.SetObjective(data.title, objective);
             Hud.I.SetCounter($"Clues {state.clues.Count} / {data.clues.Count}");
         }
 

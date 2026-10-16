@@ -397,8 +397,16 @@ namespace BlackBird
             {
                 case "case":
                     int keys = data.conclusion.needs.Count(state.deductions.Contains);
-                    Entry(data.title, $"<i>Current line of inquiry:</i> {state.Objective()}");
-                    Entry(null, data.summary ?? "");
+                    Entry(data.title, data.summary ?? "");
+                    // the leads: the open one first, then the ones already followed up, ticked off
+                    {
+                        var open = state.Objective();
+                        var done = state.leads.Where(l => l != open).Reverse().Take(9).ToList();
+                        var sb = new System.Text.StringBuilder();
+                        sb.Append($"<b>☐  {open}</b>");
+                        foreach (var l in done) sb.Append($"\n<color=#6b5a44>☑  {l}</color>");
+                        Entry("Leads", sb.ToString());
+                    }
                     Entry(null, $"Clues  {state.clues.Count} / {data.clues.Count}\nDeductions  {state.deductions.Count} / {data.deductions.Count}\nKey deductions  {keys} / {data.conclusion.needs.Length}");
                     break;
                 case "clues":
@@ -435,7 +443,7 @@ namespace BlackBird
         RectTransform board, plane; ScrollRect boardScroll; Text boardCount;
         readonly List<string> sel = new List<string>();
         string fresh;
-        const float NW = 210, NH = 62, ROW = 76, COL = 270, PAD = 24;
+        const float NW = 220, NH = 62, ROW = 80, COL = 280, PAD = 30, ORB = 16;
 
         public void OpenPalace()
         {
@@ -444,7 +452,13 @@ namespace BlackBird
             sel.Clear();
             if (!palace)
             {
-                palace = UIKit.Panel(root, "MindPalace", new Color(0.02f, 0.03f, 0.05f, 0.94f)); UIKit.Stretch(palace, 0, 0, 0, 0);
+                palace = UIKit.Panel(root, "MindPalace", new Color(0.012f, 0.016f, 0.035f, 0.97f)); UIKit.Stretch(palace, 0, 0, 0, 0);
+                // the dark of the mind: a cold light far off, a warmer one where the threads gather, specks drifting
+                var deep = PalaceFX.GlowImage(palace, "Deep", new Color(0.18f, 0.3f, 0.6f, 0.28f), new Vector2(1500, 1100));
+                deep.rectTransform.anchoredPosition = new Vector2(-120, 40);
+                var warm = PalaceFX.GlowImage(palace, "Warm", new Color(1f, 0.62f, 0.3f, 0.10f), new Vector2(900, 700));
+                warm.rectTransform.anchoredPosition = new Vector2(260, -60);
+                var motes = UIKit.Rect("Motes", palace); PalaceFX.Motes(motes);
                 var head = UIKit.Label(palace, "Head", 34, TextAnchor.UpperLeft, UIKit.Gold); UIKit.Stretch(head.rectTransform, 40, 22, 200, 640); head.text = "Mind Palace";
                 thought = UIKit.Label(palace, "Thought", 22, TextAnchor.UpperLeft, UIKit.Ink); UIKit.Stretch(thought.rectTransform, 40, 70, 200, 560);
                 var close = UIKit.Button(palace, "Close  ✕", ClosePalace, new Color(1, 1, 1, 0.08f), UIKit.Ink, 18);
@@ -496,24 +510,39 @@ namespace BlackBird
             void Thread(Vector2 a, Vector2 b, bool key)
             {
                 // a straight thread from the right edge of a to the left edge of b
-                var p0 = new Vector2(a.x + NW + PAD, -(a.y + NH / 2 + PAD)); var p1 = new Vector2(b.x + PAD, -(b.y + NH / 2 + PAD));
-                var r = UIKit.Panel(plane, "Thread", key ? new Color(UIKit.Red.r, UIKit.Red.g, UIKit.Red.b, 0.9f) : new Color(1, 1, 1, 0.35f));
-                r.GetComponent<Image>().raycastTarget = false;
-                r.anchorMin = r.anchorMax = new Vector2(0, 1); r.pivot = new Vector2(0, 0.5f);
-                var d = p1 - p0; r.anchoredPosition = p0; r.sizeDelta = new Vector2(d.magnitude, key ? 3 : 2);
-                r.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
+                // from the light at a's left to the light at b's left: a thread of light with a soft halo
+                var p0 = new Vector2(a.x + PAD + ORB, -(a.y + NH / 2 + PAD)); var p1 = new Vector2(b.x + PAD + ORB, -(b.y + NH / 2 + PAD));
+                var col = key ? new Color(1f, 0.55f, 0.3f) : new Color(0.6f, 0.78f, 1f);
+                foreach (var (width, alpha) in new[] { (9f, 0.12f), (2.5f, key ? 0.95f : 0.6f) })
+                {
+                    var r = UIKit.Panel(plane, "Thread", new Color(col.r, col.g, col.b, alpha));
+                    r.GetComponent<Image>().raycastTarget = false;
+                    r.anchorMin = r.anchorMax = new Vector2(0, 1); r.pivot = new Vector2(0, 0.5f);
+                    var d = p1 - p0; r.anchoredPosition = p0; r.sizeDelta = new Vector2(d.magnitude, width);
+                    r.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(d.y, d.x) * Mathf.Rad2Deg);
+                }
             }
             foreach (var id in state.deductions) foreach (var f in data.deductions[id].from) if (pos.ContainsKey(f)) Thread(pos[f], pos[id], data.deductions[id].key);
             foreach (var d in data.conclusion.needs) if (pos.ContainsKey(d)) Thread(pos[d], pos["$end"], true);
 
             GameObject first = null, freshGo = null;
-            Button Node(string id, string title, Color bg, Color fg, Action onClick)
+            // each fact is a light in the dark with its name beside it, on a faint plate that brightens when chosen
+            Button Node(string id, string title, Color bg, Color fg, Color orb, bool pulse, bool chosen, Action onClick)
             {
                 var b = UIKit.Button(plane, title, onClick, bg, fg, 17);
                 Destroy(b.GetComponent<LayoutElement>());
                 var r = (RectTransform)b.transform; r.anchorMin = r.anchorMax = new Vector2(0, 1); r.pivot = new Vector2(0, 1);
                 r.anchoredPosition = new Vector2(pos[id].x + PAD, -(pos[id].y + PAD)); r.sizeDelta = new Vector2(NW, NH);
-                b.GetComponentInChildren<Text>().alignment = TextAnchor.MiddleCenter;
+                var t = b.GetComponentInChildren<Text>(); t.alignment = TextAnchor.MiddleLeft;
+                t.rectTransform.offsetMin = new Vector2(ORB * 2 + 6, t.rectTransform.offsetMin.y);
+                var halo = PalaceFX.GlowImage(b.transform, "Halo", new Color(orb.r, orb.g, orb.b, chosen ? 0.75f : 0.4f), new Vector2(ORB * 3.2f, ORB * 3.2f));
+                var light = PalaceFX.GlowImage(b.transform, "Light", new Color(Mathf.Lerp(orb.r, 1, 0.5f), Mathf.Lerp(orb.g, 1, 0.5f), Mathf.Lerp(orb.b, 1, 0.5f), 1), new Vector2(ORB * 1.3f, ORB * 1.3f));
+                foreach (var g in new[] { halo, light })
+                {
+                    var gr = g.rectTransform; gr.anchorMin = gr.anchorMax = new Vector2(0, 0.5f); gr.anchoredPosition = new Vector2(ORB, 0);
+                }
+                if (pulse) halo.gameObject.AddComponent<PalacePulse>().amount = 0.9f;
+                if (chosen) halo.gameObject.AddComponent<PalacePulse>().breathe = true;
                 return b;
             }
             foreach (var id in state.clues.Concat(state.deductions))
@@ -522,16 +551,20 @@ namespace BlackBird
                 bool ded = f.IsDeduction;
                 var feeds = data.deductions.Values.Where(d => d.from.Contains(id)).ToList();
                 bool spent = feeds.Count > 0 && feeds.All(d => state.deductions.Contains(d.id));
-                Color bg = sel.Contains(id) ? new Color(0.55f, 0.4f, 0.12f, 0.98f)
-                    : ded ? (f.key ? new Color(0.36f, 0.08f, 0.06f, 0.95f) : new Color(0.2f, 0.16f, 0.1f, 0.95f))
-                    : f.kind == "testimony" ? new Color(0.1f, 0.15f, 0.22f, 0.95f) : f.kind == "memory" ? new Color(0.17f, 0.12f, 0.2f, 0.95f) : new Color(0.12f, 0.13f, 0.14f, 0.95f);
+                bool chosen = sel.Contains(id);
+                // the light's colour says what kind of fact it is: seen (pale blue), heard (sea green), remembered
+                // (violet), worked out (gold), and the deductions that answer the case (ember)
+                Color orb = ded ? (f.key ? new Color(1f, 0.45f, 0.22f) : new Color(1f, 0.78f, 0.4f))
+                    : f.kind == "testimony" ? new Color(0.35f, 0.9f, 0.75f) : f.kind == "memory" ? new Color(0.75f, 0.55f, 1f) : new Color(0.55f, 0.75f, 1f);
+                Color bg = chosen ? new Color(0.45f, 0.32f, 0.1f, 0.85f) : new Color(orb.r * 0.12f, orb.g * 0.12f, orb.b * 0.14f, 0.55f);
                 var fg = spent ? new Color(UIKit.Ink.r, UIKit.Ink.g, UIKit.Ink.b, 0.45f) : UIKit.Ink;
-                var b = Node(id, f.title, bg, fg, () => Pick(fid));
+                var b = Node(id, f.title, bg, fg, spent ? orb * 0.6f : orb, id == fresh, chosen, () => Pick(fid));
                 if (first == null) first = b.gameObject;
                 if (id == fresh) freshGo = b.gameObject;
             }
             bool ready = state.CanConclude;
-            Node("$end", data.conclusion.question, ready ? new Color(0.6f, 0.45f, 0.12f, 1f) : new Color(0.1f, 0.1f, 0.1f, 0.9f), ready ? Color.white : new Color(1, 1, 1, 0.5f), () =>
+            Node("$end", data.conclusion.question, ready ? new Color(0.5f, 0.36f, 0.1f, 0.9f) : new Color(0.06f, 0.06f, 0.08f, 0.7f), ready ? Color.white : new Color(1, 1, 1, 0.5f),
+                ready ? new Color(1f, 0.9f, 0.6f) : new Color(0.35f, 0.35f, 0.4f), false, ready, () =>
             {
                 if (!state.CanConclude) { RenderPalace("Not yet. I have not enough to name anyone."); return; }
                 palace.gameObject.SetActive(false); Hud.I.Visible(true); Conclude();
