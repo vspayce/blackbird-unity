@@ -230,6 +230,18 @@ namespace BlackBird.EditorTools
                         m.SetColor("_BaseColor", lamp ? c : Color.white * 0.2f);
                         m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
                     }
+                    if (n == "mirror" || n.EndsWith("mirror"))
+                    {
+                        // old silvered glass: with no reflection close by, a true mirror read as a black panel in its
+                        // frame. A pale, glossy, faintly self-lit grey reads as glass catching the room's light.
+                        m.SetTexture("_BaseMap", null);
+                        m.SetColor("_BaseColor", new Color(0.46f, 0.5f, 0.52f));
+                        if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0.55f);
+                        if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.9f);
+                        m.EnableKeyword("_EMISSION");
+                        m.SetColor("_EmissionColor", new Color(0.07f, 0.075f, 0.08f));
+                        m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
+                    }
                     EditorUtility.SetDirty(m);
                 }
         }

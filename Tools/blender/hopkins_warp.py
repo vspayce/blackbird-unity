@@ -188,6 +188,7 @@ def install(modules, K, G=None):
     K.LAMPS = Tracked(K.LAMPS); K.COLLIDERS = Tracked(K.COLLIDERS)
     if G is not None: G.BIG_LAMPS = Tracked(G.BIG_LAMPS)
     _wrap_lifted(K, G)
+    _wrap_mirrored(K)
 
 
 def _wrap_lifted(K, G):
@@ -218,8 +219,69 @@ def _wrap_lifted(K, G):
     K.lifted = lifted
 
 
+def _wrap_mirrored(K):
+    """The prototype builds the west side's neighbours (Stanford's house, Mason Street, the Colton house) on the
+    east and mirrors everything made inside the block across x = 0 (K.mirrored_x). The warp's records were taken
+    before the mirror, so a rigid piece was moved toward +x, and a cylinder kept its unmirrored axis: the mirrored
+    balusters strung out across the sky and veranda posts stood in the library. Mirror the records too."""
+    orig = K.mirrored_x
+    class mirrored_x(orig):
+        def __enter__(self):
+            self._recs = len(STATE['recs'])
+            return super().__enter__()
+        def __exit__(self, *exc):
+            r = super().__exit__(*exc)
+            for k in range(self._recs, len(STATE['recs'])):
+                kind, ranges, data = STATE['recs'][k]
+                if kind == 'rigid':
+                    data.x = -data.x
+                elif kind == 'point':
+                    data.x = -data.x
+                else:
+                    a, ax, h = data
+                    STATE['recs'][k] = (kind, ranges, (Vector((-a.x, a.y, a.z)), Vector((-ax.x, ax.y, ax.z)), h))
+            return r
+    K.mirrored_x = mirrored_x
+
+
+def _bounds(ranges):
+    lo = [math.inf] * 3; hi = [-math.inf] * 3
+    for m, n0, n1 in ranges:
+        bm = setkit.BM[m]; bm.verts.ensure_lookup_table()
+        for i in range(n0, n1):
+            co = bm.verts[i].co
+            for k in range(3):
+                if co[k] < lo[k]: lo[k] = co[k]
+                if co[k] > hi[k]: hi[k] = co[k]
+    return lo, hi
+
+
+def _settle_stacks():
+    """A rigid piece standing on another rigid piece (a vase on a plinth) was moved by the warp at its own foot, so
+    it rose with the stretched height (60% of it) while the plinth under it, standing on the floor, did not: the
+    vases hung 0.6 m over their plinths. Give such a piece its support's move instead."""
+    rig = [k for k, r in enumerate(STATE['recs']) if r[0] == 'rigid' and r[1]]
+    box = {k: _bounds(STATE['recs'][k][1]) for k in rig}
+    rig.sort(key=lambda k: box[k][0][1])          # from the floor up, so a stack settles bottom first
+    for k in rig:
+        lo, hi = box[k]
+        if lo[1] < 0.05: continue
+        cx, cz = (lo[0] + hi[0]) / 2, (lo[2] + hi[2]) / 2
+        best = None
+        for j in rig:
+            if j == k: continue
+            l2, h2 = box[j]
+            if abs(h2[1] - lo[1]) < 0.06 and l2[0] - 0.02 <= cx <= h2[0] + 0.02 and l2[2] - 0.02 <= cz <= h2[2] + 0.02:
+                if best is None or (h2[0] - l2[0]) * (h2[2] - l2[2]) < (box[best][1][0] - box[best][0][0]) * (box[best][1][2] - box[best][0][2]):
+                    best = j
+        if best is not None:
+            d = STATE['recs'][k][2]; ds = STATE['recs'][best][2]
+            d.y = ds.y
+
+
 def apply(K, G=None):
     """Carry everything built so far through the warp. Anything built afterwards is in the new coordinates."""
+    _settle_stacks()
     covered = {m: bytearray(len(bm.verts)) for m, bm in setkit.BM.items()}
     for kind, ranges, data in STATE['recs']:
         for m, n0, n1 in ranges:

@@ -146,6 +146,40 @@ def patch():
             return                                   # no doors in the great arch
         return orig_leaves(F, t, w, h, side, *args, **kw)
     K.wall, K.lining, K.door_leaves = wall, lining, door_leaves
+    # paintings and mirrors hang facing the room whichever way the wall's frame is turned: some walls' frames
+    # face into the wall, and from the room those pictures showed only an empty gilt frame
+    orig_canvas = K.canvas
+    def canvas(mat, corners, uv=((0, 0), (1, 0), (1, 1), (0, 1))):
+        f = orig_canvas(mat, corners, uv)
+        if mat.startswith('pic_') or mat == 'mirror':
+            c = list(corners)
+            orig_canvas(mat, [c[1], c[0], c[3], c[2]], uv)
+        return f
+    K.canvas = canvas
+    # a lancet's pointed head is glass laid over the stone above the opening; clear (see-through) glass showed the
+    # stone through it, so the head takes dark glass
+    orig_lancet = K.lancet
+    def lancet(F, u, v, w, h, lit=False, glass=None):
+        if glass != 'glass_clear':
+            return orig_lancet(F, u, v, w, h, lit, glass)
+        bm = bm_for('glass_clear'); n0 = len(bm.faces)
+        orig_lancet(F, u, v, w, h, lit, glass)
+        bm.faces.ensure_lookup_table()
+        head = bm.faces[-1] if len(bm.faces) > n0 and len(bm.faces[-1].verts) == 3 else None
+        if head is not None:
+            pts = [v_.co.copy() for v_ in head.verts]
+            bm.faces.remove(head)
+            bd = bm_for('glass_dark')
+            bd.faces.new([bd.verts.new(q) for q in pts])
+    K.lancet = lancet
+    # the neighbours' chimneys start just above the eaves; once the roofs are stretched they stood clear of them.
+    # Run them down into the roof.
+    orig_wbox = K.wbox
+    def wbox(mat, x0, x1, y0, y1, z0, z1):
+        if mat == 'brick_red' and y0 > 8 and y1 - y0 > 3 and abs(x1 - x0) < 1.2 and abs(z1 - z0) < 1.2:
+            y0 -= 2.5
+        return orig_wbox(mat, x0, x1, y0, y1, z0, z1)
+    K.wbox = wbox
 
 
 def _stacked(openings):
