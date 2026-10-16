@@ -81,7 +81,7 @@ namespace BlackBird.Setup
             mi.useFileScale = true;
             mi.bakeAxisConversion = true;
 
-            if (p.Contains("/Set/") || p.Contains("/Hopkins/"))
+            if (p.Contains("/Set/") || p.Contains("/Hopkins/") || p.Contains("/Palace/") || p.Contains("/Stmark/") || p.Contains("/Kearny/"))
             {
                 // static sets: lightmap UVs so their gaslight can be baked
                 mi.generateSecondaryUV = true;
