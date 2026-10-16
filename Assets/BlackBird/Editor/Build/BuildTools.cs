@@ -72,14 +72,20 @@ namespace BlackBird.EditorTools
             if (Directory.Exists(WebGLDir)) Directory.Delete(WebGLDir, true);
             foreach (var (folder, names) in Groups)
             {
-                var dir = Path.Combine(WebGLDir, folder);
+                // each player is built in its own staging folder and then copied into place: building the next one
+                // cleans up the previous build's output wherever it was written
+                var stage = Path.Combine(ProjectRoot, "Library", "WebGLStage", folder);
+                if (Directory.Exists(stage)) Directory.Delete(stage, true);
                 var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
                 {
                     scenes = names.Select(n => $"Assets/BlackBird/Scenes/{n}.unity").ToArray(),
-                    locationPathName = dir, target = BuildTarget.WebGL, options = BuildOptions.None,
+                    locationPathName = stage, target = BuildTarget.WebGL, options = BuildOptions.None,
                 });
                 var s = report.summary;
                 if (s.result != BuildResult.Succeeded) { Debug.LogError($"[Black Bird] WebGL build of {folder} {s.result}: {s.totalErrors} errors. See the console."); return; }
+                var dir = Path.Combine(WebGLDir, folder);
+                Directory.CreateDirectory(dir);
+                CopyDir(stage, dir);
                 var biggest = Directory.GetFiles(Path.Combine(dir, "Build")).Max(f => new FileInfo(f).Length) / (1024f * 1024f);
                 Debug.Log($"[Black Bird] WebGL build: {folder} ({s.totalSize / (1024f * 1024f):0.0} MB, largest file {biggest:0.0} MB, {s.totalTime.TotalSeconds:0}s)");
                 if (biggest > 95) Debug.LogError($"[Black Bird] {folder}: a file of {biggest:0} MB is over what GitHub Pages will take (100 MB).");
@@ -129,6 +135,11 @@ namespace BlackBird.EditorTools
         public static void Publish()
         {
             if (!File.Exists(Path.Combine(WebGLDir, "index.html"))) { Debug.LogError("[Black Bird] No WebGL build yet (Black Bird ▸ Build WebGL)."); return; }
+            foreach (var (folder, _) in Groups)
+            {
+                var b = Path.Combine(WebGLDir, folder, "Build");
+                if (!Directory.Exists(b) || !Directory.GetFiles(b, "*.data*").Any()) { Debug.LogError($"[Black Bird] {folder} has no player files; build again before publishing."); return; }
+            }
             var url = Git(ProjectRoot, "remote get-url origin").Trim();
             if (string.IsNullOrEmpty(url)) { Debug.LogError("[Black Bird] This project has no git remote 'origin'."); return; }
 
