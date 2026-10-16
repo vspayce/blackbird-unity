@@ -43,16 +43,21 @@ def _call(method, path, body=None):
                                  data=json.dumps(body).encode() if body is not None else None,
                                  headers={'Authorization': 'Bearer ' + token(), 'Content-Type': 'application/json'})
     try:
-        with urllib.request.urlopen(req, timeout=60) as r:
+        with urllib.request.urlopen(req, timeout=90) as r:
             txt = r.read().decode()
             return json.loads(txt) if txt else {}
+    except (TimeoutError, OSError) as e:
+        if isinstance(e, urllib.error.HTTPError): return {'error': e.code, 'body': e.read().decode()[:2000]}
+        return {'error': 599, 'body': f'no answer: {e}'}
     except urllib.error.HTTPError as e:
         return {'error': e.code, 'body': e.read().decode()[:2000]}
 
 
+APP_ID = '6823487655'     # Black Bird: A Holmes Mystery
+
+
 def app_id():
-    d = call('GET', f'/v1/apps?filter[bundleId]={BUNDLE}')
-    return d['data'][0]['id']
+    return APP_ID
 
 
 def builds():
