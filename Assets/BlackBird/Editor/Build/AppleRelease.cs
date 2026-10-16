@@ -124,6 +124,17 @@ namespace BlackBird.EditorTools
             s = SetKey(s, "ITSAppUsesNonExemptEncryption", "<false/>");
             s = SetKey(s, "CFBundleVersion", $"<string>{BuildNumber}</string>");
             File.WriteAllText(plist, s);
+            // Unity's prebuilt UnityRuntime.framework says it runs on iOS/tvOS 15 in its Info.plist, but its binary is
+            // built for the app's own minimum (16 / 17); App Store Connect rejects that mismatch (ITMS-90208)
+            var min = target == BuildTarget.tvOS ? PlayerSettings.tvOS.targetOSVersionString : PlayerSettings.iOS.targetOSVersionString;
+            foreach (var fw in Directory.GetFiles(Path.Combine(path, "Frameworks"), "Info.plist", SearchOption.AllDirectories))
+            {
+                if (!fw.Contains(".framework")) continue;
+                var t = File.ReadAllText(fw);
+                if (!t.Contains("<key>MinimumOSVersion</key>")) continue;
+                File.WriteAllText(fw, SetKey(t, "MinimumOSVersion", $"<string>{min}</string>"));
+                Debug.Log($"[Black Bird] {Path.GetFileName(Path.GetDirectoryName(fw))}: minimum OS {min}");
+            }
             Debug.Log($"[Black Bird] Info.plist: build {BuildNumber}, no non-exempt encryption.");
         }
 
