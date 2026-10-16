@@ -20,7 +20,9 @@ DEST="generic/platform=$PLATFORM"; [ "$PLATFORM" = iOS ] && DEST="generic/platfo
 
 AUTH=()
 KEY="$(ls Tools/apple/AuthKey_*.p8 2>/dev/null | head -1 || true)"
-if [ -n "$KEY" ] && [ -f Tools/apple/issuer.txt ]; then
+# (an App Manager key can't use Apple's cloud-managed distribution certificate, so signing goes through the Apple ID
+# signed in to Xcode unless USE_API_KEY=1; the key is used for checking builds: Tools/apple/asc.py)
+if [ "${USE_API_KEY:-0}" = 1 ] && [ -n "$KEY" ] && [ -f Tools/apple/issuer.txt ]; then
   KEYID="$(basename "$KEY" .p8)"; KEYID="${KEYID#AuthKey_}"
   AUTH=(-authenticationKeyPath "$PWD/$KEY" -authenticationKeyID "$KEYID" -authenticationKeyIssuerID "$(cat Tools/apple/issuer.txt)")
 fi
