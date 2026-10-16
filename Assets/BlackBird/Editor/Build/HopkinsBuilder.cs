@@ -215,6 +215,8 @@ namespace BlackBird.EditorTools
             roam.opening = day ? "The Hopkins house by daylight, Watson. Muybridge photographed the whole city from that tower."
                                : "The Hopkins house, Watson. Forty rooms, a pipe organ, and a tower that sees the whole city.";
             FillRoam(roam, data);
+            // by night the house is Chapter IV: the Fat Man is upstairs, and the case runs instead of the free walk
+            if (!day) ChapterFour(systems, roam, holmes, watson, rig, ctrl, walk, run);
             systems.AddComponent<SceneSwitch>();
             new GameObject("EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule));
 
@@ -312,6 +314,31 @@ namespace BlackBird.EditorTools
             AssetDatabase.DeleteAsset(path);
             AssetDatabase.CreateAsset(m, path);
             return m;
+        }
+
+        // ---- Chapter IV: the case on the house, its positions carried through the warp ----
+        static void ChapterFour(GameObject systems, Roam roam, Walker holmes, Walker watson, CameraRig rig, RuntimeAnimatorController ctrl, float walk, float run)
+        {
+            var data = CaseData.Load("gutman");
+            var ch = systems.AddComponent<Chapter>();
+            ch.caseId = "gutman"; ch.warp = "hopkins"; ch.nextScene = null;
+            ch.holmes = holmes; ch.watson = watson; ch.cameraRig = rig;
+            var cast = new List<CastMember>();
+            foreach (var p in data.people.Values.Where(p => p.id != "watson" && p.pos != null))
+            {
+                if (!AssetDatabase.LoadAssetAtPath<GameObject>(SceneBuilder.CharModel(p.model ?? p.id))) { Debug.LogWarning($"[Black Bird] No model for {p.id}."); continue; }
+                var w = SceneBuilder.Person(p.name, p.model ?? p.id, ctrl, walk, run, false);
+                w.transform.position = ch.P(p.pos);
+                cast.Add(new CastMember { id = p.id, walker = w });
+            }
+            ch.cast = cast.ToArray();
+            // the set's places: the case's spots by their world ids; whatever no spot uses stays usable (the tower stair)
+            ch.places = roam.places.Select(pl => new NamedPlace { id = pl.id, pos = pl.pos }).ToArray();
+            var taken = new HashSet<string>(data.spots.Select(sp => sp.worldId ?? sp.place).Where(x => x != null));
+            ch.uses = roam.places.Where(pl => !taken.Contains(pl.id)).ToArray();
+            ch.destinations = roam.destinations;
+            ch.spawn = roam.spawn.pos; ch.spawnYaw = roam.spawn.yaw;
+            Object.DestroyImmediate(roam);
         }
 
         // ---- the Roam data ------------------------------------------------------------------------------

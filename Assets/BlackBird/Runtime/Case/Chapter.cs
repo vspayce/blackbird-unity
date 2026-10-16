@@ -21,6 +21,9 @@ namespace BlackBird
         public NamedPlace[] places;
         public Vector3 spawn; public float spawnYaw; public Vector3 watsonOffset = new Vector3(-1.1f, 0, -0.7f);
         public string nextScene;                 // where "Continue" goes after the end card
+        public string warp;                      // "hopkins": the case's positions are the prototype's, carried into the doubled house
+        public PlaceDef[] uses = new PlaceDef[0];          // the set's own things to use: a stair to the tower, a line about a room
+        public Destination[] destinations = new Destination[0];
 
         Explorer ex;
         CaseData data;
@@ -54,13 +57,13 @@ namespace BlackBird
             ex = GetComponent<Explorer>();
             if (!ex) { ex = gameObject.AddComponent<Explorer>(); ex.holmes = holmes; ex.watson = watson; ex.cameraRig = cameraRig; }
             ex.Place(spawn, spawnYaw);
-            if (watson) watson.transform.position = data.people.TryGetValue("watson", out var wp) && wp.pos != null ? Pos(wp.pos)   // where the case puts him
+            if (watson) watson.transform.position = data.people.TryGetValue("watson", out var wp) && wp.pos != null ? P(wp.pos)   // where the case puts him
                                                   : spawn + Quaternion.Euler(0, spawnYaw, 0) * watsonOffset;
             foreach (var c in cast)
             {
                 if (!data.people.TryGetValue(c.id, out var p) || p.pos == null || !c.walker) continue;
-                c.walker.transform.position = Pos(p.pos);
-                if (p.face != null) { var f = Web.W(p.face[0], p.face[1]) - c.walker.transform.position; f.y = 0; if (f.sqrMagnitude > 0.01f) c.walker.transform.rotation = Quaternion.LookRotation(f); }
+                c.walker.transform.position = P(p.pos);
+                if (p.face != null) { var f = P(p.face) - c.walker.transform.position; f.y = 0; if (f.sqrMagnitude > 0.01f) c.walker.transform.rotation = Quaternion.LookRotation(f); }
             }
             Presence();
             Hud.I.CaseControls(true);
@@ -78,10 +81,18 @@ namespace BlackBird
         /// A position from the case data, in the web game's coordinates of this set.
         public static Vector3 Pos(float[] p) => p.Length >= 3 ? Web.W(p[0], p[1], p[2]) : Web.W(p[0], p[1]);
 
+        /// The same, through this set's warp if it has one.
+        public Vector3 P(float[] p)
+        {
+            var v = p.Length >= 3 ? new Vector3(p[0], p[1], p[2]) : new Vector3(p[0], 0, p[1]);
+            if (warp == "hopkins") v = HopkinsWarp.Map(v);
+            return Web.W(v.x, v.y, v.z);
+        }
+
         Vector3? PlacePos(SpotInfo s)
         {
-            if (s.pos != null) return Pos(s.pos);
-            var id = s.place ?? s.id;
+            if (s.pos != null) return P(s.pos);
+            var id = s.place ?? s.worldId ?? s.id;
             var np = places?.FirstOrDefault(p => p.id == id);
             return np != null ? np.pos : (Vector3?)null;
         }
@@ -107,7 +118,7 @@ namespace BlackBird
             Hud.I.SetTouchMode(input.UsingTouch);
             if (ui.Open || busy || portrait != null)
             {
-                holmes.Idle(dt); ex.Follow(dt); People(dt);
+                holmes.Idle(dt); FollowWatson(dt); People(dt);
                 Hud.I.Context(null, input.UsingTouch);
                 if (portrait != null) PortraitUpdate();
                 Reads();
@@ -117,12 +128,31 @@ namespace BlackBird
             if (input.Book) { ui.OpenBook(); return; }
             if (input.Palace) { ui.OpenPalace(); return; }
             ex.Steer();
-            ex.Follow(dt);
+            FollowWatson(dt);
             People(dt);
             FindContext();
             Hud.I.Context(contextLabel, input.UsingTouch);
             if (input.Act && contextAct != null) contextAct();
             Reads();
+        }
+
+        // Watson keeps at Holmes's shoulder, except where the case has him wait (Chapter IV: below the tower until Holmes
+        // has seen the Fat Man alone)
+        bool waitSaid;
+        void FollowWatson(float dt)
+        {
+            if (watson && data.chapter != null && data.chapter.TryGetValue("watsonWaits", out var wo) && wo is Dictionary<string, object> ww
+                && !state.events.Contains((string)ww["until"]))
+            {
+                float above = P(new[] { 0f, Convert.ToSingle(ww["above"]), 0f }).y;
+                if (holmes.transform.position.y > above)
+                {
+                    if (!waitSaid) { waitSaid = true; Hud.I.Narrate("Holmes", (string)ww["line"]); }
+                    watson.Idle(dt);
+                    return;
+                }
+            }
+            ex.Follow(dt);
         }
 
         void People(float dt)
@@ -184,12 +214,30 @@ namespace BlackBird
                 contextLabel = "Talk to " + data.people[id].name;
                 contextAct = () => Talk(id);
             }
+            foreach (var u in uses)
+            {
+                var d3 = u.pos - hp;
+                if (Mathf.Abs(d3.y) > 2.2f) continue;
+                d3.y = 0; float d = d3.magnitude;
+                if (d > u.r || d >= best || (string.IsNullOrEmpty(u.to) && string.IsNullOrEmpty(u.line))) continue;
+                best = d; var use = u;
+                contextLabel = u.label; contextAct = () => Use(use);
+                holmes.lookPoint = u.pos;
+            }
             var toW = watson ? watson.transform.position - hp : Vector3.zero; toW.y = 0;
             if (watson && toW.magnitude < 1.8f && contextLabel == null && holmes.Speed < 0.2f && Vector3.Angle(holmes.transform.forward, toW) < 50f && data.talk.ContainsKey("watson"))
             {
                 contextLabel = "Talk to Dr. Watson";
                 contextAct = () => Talk("watson");
             }
+        }
+
+        void Use(PlaceDef u)
+        {
+            if (!string.IsNullOrEmpty(u.to))
+                foreach (var d in destinations)
+                    if (d.id == u.to) { ex.Place(d.pos, d.yaw); break; }
+            if (!string.IsNullOrEmpty(u.line)) Hud.I.Narrate("Holmes", u.line);
         }
 
         void UseSpot(SpotInfo s)
@@ -271,7 +319,7 @@ namespace BlackBird
                 {
                     state.AddEvent(name);
                     Presence();
-                    if (ev.wake != null) { ex.Place(Pos(ev.wake), 0); if (watson) watson.transform.position = Pos(ev.wake) + new Vector3(0.9f, 0, 0.6f); }
+                    if (ev.wake != null) { ex.Place(P(ev.wake), 0); if (watson) watson.transform.position = P(ev.wake) + new Vector3(0.9f, 0, 0.6f); }
                     ui.Lines(ev.after, () => { busy = false; if (ev.gives != null) Give(ev.gives); Refresh(); });
                 };
                 if (ev.fragments != null && ev.fragments.Count > 0) ui.Lines(before, () => ui.Reconstruct(ev, wake));
