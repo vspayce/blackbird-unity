@@ -159,6 +159,7 @@ namespace BlackBird
             Book = book.WasPressedThisFrame() || uiBook;
             Palace = palace.WasPressedThisFrame() || uiPalace;
             uiAct = uiFocus = uiBack = uiBook = uiPalace = false;
+            if (PlacesMenu.IsOpen) { Move = Vector2.zero; Look = Vector2.zero; Turn = 0; LookedThisFrame = false; Act = Focus = Back = Book = Palace = false; }
         }
 
         public Vector2 DefaultStickCenter()
