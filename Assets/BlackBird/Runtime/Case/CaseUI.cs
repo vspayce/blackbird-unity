@@ -384,12 +384,12 @@ namespace BlackBird
                 { var tid = id; UIKit.Button(tabs, name, () => { tab = tid; RenderBook(); }, new Color(0.35f, 0.25f, 0.15f, 0.95f), UIKit.Ink, 22); }
             }
             book.gameObject.SetActive(true);
-            Hud.I.Letterbox(false);
+            Hud.I.Letterbox(false); Hud.I.Visible(false);
             RenderBook();
             UIKit.Select(book.transform.Find("Tabs").GetChild(0).gameObject);
         }
 
-        void CloseBook() { book.gameObject.SetActive(false); mode = Screen.None; onClosed?.Invoke(); }
+        void CloseBook() { book.gameObject.SetActive(false); mode = Screen.None; Hud.I.Visible(true); onClosed?.Invoke(); }
 
         void RenderBook()
         {
@@ -466,11 +466,11 @@ namespace BlackBird
                 boardCount = UIKit.Label(palace, "Count", 18, TextAnchor.LowerLeft, new Color(1, 1, 1, 0.6f), UIKit.type); UIKit.Stretch(boardCount.rectTransform, 40, 680, 40, 18);
             }
             palace.gameObject.SetActive(true);
-            Hud.I.Letterbox(false);
+            Hud.I.Letterbox(false); Hud.I.Visible(false);
             RenderPalace("Choose two facts that speak to one another.");
         }
 
-        void ClosePalace() { palace.gameObject.SetActive(false); mode = Screen.None; onClosed?.Invoke(); }
+        void ClosePalace() { palace.gameObject.SetActive(false); mode = Screen.None; Hud.I.Visible(true); onClosed?.Invoke(); }
 
         int Depth(string id) => data.deductions.TryGetValue(id, out var d) ? 1 + d.from.Max(Depth) : 0;
 
@@ -543,7 +543,7 @@ namespace BlackBird
             Node("$end", data.conclusion.question, ready ? new Color(0.6f, 0.45f, 0.12f, 1f) : new Color(0.1f, 0.1f, 0.1f, 0.9f), ready ? Color.white : new Color(1, 1, 1, 0.5f), () =>
             {
                 if (!state.CanConclude) { RenderPalace("Not yet. I have not enough to name anyone."); return; }
-                palace.gameObject.SetActive(false); Conclude();
+                palace.gameObject.SetActive(false); Hud.I.Visible(true); Conclude();
             });
             int keys = data.conclusion.needs.Count(state.deductions.Contains);
             boardCount.text = $"Threads drawn {state.deductions.Count} / {data.deductions.Count} · Key {keys} / {data.conclusion.needs.Length}" + (ready ? " · Choose the question to answer it" : "");
@@ -603,7 +603,7 @@ namespace BlackBird
         void EndCard()
         {
             mode = Screen.End;
-            Hud.I.Letterbox(false);
+            Hud.I.Letterbox(false); Hud.I.Visible(false);
             if (endCard) Destroy(endCard.gameObject);
             endCard = UIKit.Panel(root, "EndCard", new Color(0.02f, 0.03f, 0.04f, 0.96f)); UIKit.Stretch(endCard, 0, 0, 0, 0);
             var col = UIKit.Rect("Col", endCard); UIKit.Place(col, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(640, 600));
@@ -615,7 +615,7 @@ namespace BlackBird
             T(new string('★', stars) + new string('☆', 5 - stars), 48, UIKit.Gold);
             T(string.Join("\n", rows.Select(r => $"{r.Item1}   <b>{r.Item2}</b>")), 20, UIKit.Ink);
             if (!string.IsNullOrEmpty(data.next)) T("Next: " + data.next, 22, new Color(1, 1, 1, 0.65f));
-            var b = UIKit.Button(col, "Continue", () => { Destroy(endCard.gameObject); mode = Screen.None; onSolved?.Invoke(); }, new Color(0.35f, 0.25f, 0.12f, 1), Color.white, 24);
+            var b = UIKit.Button(col, "Continue", () => { Destroy(endCard.gameObject); mode = Screen.None; Hud.I.Visible(true); onSolved?.Invoke(); }, new Color(0.35f, 0.25f, 0.12f, 1), Color.white, 24);
             UIKit.Select(b.gameObject);
         }
     }

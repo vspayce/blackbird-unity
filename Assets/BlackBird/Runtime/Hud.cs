@@ -137,6 +137,8 @@ namespace BlackBird
         // ---- public API -------------------------------------------------------------------------
         public void SetObjective(string title, string line) { objective.text = $"<size=20>{title.ToUpperInvariant()}</size>\n{line}"; }
         public void SetCounter(string s) => counter.text = s;
+        /// Hide the whole HUD (under the Notebook and the Mind Palace).
+        public void Visible(bool on) { var c = root.GetComponent<Canvas>(); if (c) c.enabled = on; }
         /// The Notebook and Mind Palace buttons, and their keys in the hint, for chapters with a case.
         public void CaseControls(bool on)
         {
