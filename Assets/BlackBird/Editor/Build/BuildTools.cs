@@ -116,6 +116,8 @@ namespace BlackBird.EditorTools
             if (target == BuildTarget.tvOS) { PlayerSettings.tvOS.requireExtendedGameController = true; PlayerSettings.tvOS.targetOSVersionString = "17.0"; }   // played with a controller
             if (target == BuildTarget.iOS) PlayerSettings.iOS.targetOSVersionString = "16.0";
             AppleRelease.Prepare(target);
+            var missing = AllScenes.Where(n => !File.Exists(Path.Combine(ProjectRoot, $"Assets/BlackBird/Scenes/{n}.unity"))).ToArray();
+            if (missing.Length > 0) { Debug.LogError($"[Black Bird] {what}: build these scenes first: {string.Join(", ", missing)}"); return; }
             var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions
             {
                 scenes = AllScenes.Select(n => $"Assets/BlackBird/Scenes/{n}.unity").ToArray(),

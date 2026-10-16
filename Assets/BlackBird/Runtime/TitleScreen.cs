@@ -21,14 +21,14 @@ namespace BlackBird
             ("gunsel", "Kearny", "V", "The Gunsel", "Kearny Street, in fog"),
         };
 
-        RectTransform main, chapters;
+        RectTransform main, chapters; Text credit;
         GameObject firstMain, firstChapter;
 
         void Start()
         {
             Cursor.lockState = CursorLockMode.None;
             UIKit.serif = serif ? serif : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-            UIKit.type = UIKit.serif;
+            if (!UIKit.type) UIKit.type = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             if (!EventSystem.current) new GameObject("EventSystem", typeof(EventSystem), typeof(UnityEngine.InputSystem.UI.InputSystemUIInputModule));
             Build();
             Show(main);
@@ -50,6 +50,8 @@ namespace BlackBird
         {
             main.gameObject.SetActive(panel == main);
             chapters.gameObject.SetActive(panel == chapters);
+            credit.gameObject.SetActive(panel == main);
+            confirm = null;
             if (panel == chapters) FillChapters();
             EventSystem.current?.SetSelectedGameObject(panel == main ? firstMain : firstChapter);
         }
@@ -81,13 +83,15 @@ namespace BlackBird
             UIKit.Column(main, 12);
             var next = NextChapter();
             bool started = Chapters.Any(c => CaseState.HasSave(c.caseId));
+            bool allDone = Chapters.All(c => Solved(c.caseId));
             var bg0 = new Color(0.08f, 0.07f, 0.06f, 0.88f);
-            var cont = UIKit.Button(main, started ? "Continue" : "Begin", () => Play(next, false), bg0, UIKit.Gold, 30,
-                $"Chapter {next.numeral} · {next.name}");
+            var cont = allDone
+                ? UIKit.Button(main, "The case is closed", () => Show(chapters), bg0, UIKit.Gold, 30, "Replay any chapter")
+                : UIKit.Button(main, started ? "Continue" : "Begin", () => Play(next, false), bg0, UIKit.Gold, 30, $"Chapter {next.numeral} · {next.name}");
             firstMain = cont.gameObject;
             UIKit.Button(main, "Chapters", () => Show(chapters), bg0, UIKit.Ink, 26, "Play or replay any of the five");
             UIKit.Button(main, "Wander", () => PlacesOpen(), bg0, UIKit.Ink, 26, "The places, outside the story");
-            var credit = UIKit.Label(safe, "Credit", 15, TextAnchor.LowerLeft, new Color(1, 1, 1, 0.45f));
+            credit = UIKit.Label(safe, "Credit", 15, TextAnchor.LowerLeft, new Color(1, 1, 1, 0.45f));
             UIKit.Place(credit.rectTransform, new Vector2(0, 0), new Vector2(84, 30), new Vector2(900, 40));
             credit.text = "After Dashiell Hammett's The Maltese Falcon (1930), with Holmes in Spade's shoes.";
 
@@ -105,10 +109,20 @@ namespace BlackBird
             foreach (var c in Chapters)
             {
                 var (state, solved, stars) = Progress(c.caseId);
-                string sub = solved ? $"{c.where} · solved {new string('★', stars)}{new string('☆', 5 - stars)}" : state ? $"{c.where} · in progress" : c.where;
+                string sub = solved ? $"{c.where} · solved, {stars} of 5 stars" : state ? $"{c.where} · in progress" : c.where;
                 var ch = c;
-                var b = UIKit.Button(chapters, $"{c.numeral}.  {c.name}", () => Play(ch, solved), new Color(0.08f, 0.07f, 0.06f, 0.88f),
-                    solved ? UIKit.Ink : UIKit.Gold, 24, sub);
+                Button b = null;
+                b = UIKit.Button(chapters, $"{c.numeral}.  {c.name}", () =>
+                {
+                    // replaying a solved chapter clears its stars: ask first (a second press within a few seconds)
+                    if (solved && (confirm != b || Time.unscaledTime - confirmAt > 4f))
+                    {
+                        confirm = b; confirmAt = Time.unscaledTime;
+                        b.GetComponentInChildren<Text>().text = $"{ch.numeral}.  Replay from the start? Press again";
+                        return;
+                    }
+                    Play(ch, solved);
+                }, new Color(0.08f, 0.07f, 0.06f, 0.88f), solved ? UIKit.Ink : UIKit.Gold, 24, sub);
                 Link(prev, b); prev = b;
                 if (!firstChapter) firstChapter = b.gameObject;
             }
@@ -122,6 +136,10 @@ namespace BlackBird
             if (!a) return;
             var na = a.navigation; na.mode = Navigation.Mode.Explicit; na.selectOnDown = b; a.navigation = na;
         }
+
+        Button confirm; float confirmAt;
+
+        public static bool Solved(string caseId) => Progress(caseId).solved;
 
         static (bool started, bool solved, int stars) Progress(string caseId)
         {
@@ -139,6 +157,9 @@ namespace BlackBird
 
         static void Play((string caseId, string scene, string numeral, string name, string where) c, bool replay)
         {
+#if !UNITY_WEBGL || UNITY_EDITOR
+            if (!Application.CanStreamedLevelBeLoaded(c.scene)) { Debug.LogWarning("[Black Bird] Not in this build: " + c.scene); return; }
+#endif
             if (replay) { var d = CaseData.Load(c.caseId); if (d != null) new CaseState(d).Erase(); }
             SceneSwitch.Go(c.scene);
         }

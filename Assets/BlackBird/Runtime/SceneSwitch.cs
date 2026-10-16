@@ -78,6 +78,7 @@ namespace BlackBird
             Cursor.lockState = CursorLockMode.None;
             if (Application.CanStreamedLevelBeLoaded(scene)) { SceneManager.LoadScene(scene); return; }
 #if UNITY_WEBGL && !UNITY_EDITOR
+            if (scene == "Title") { BB_GoTo("../"); return; }     // on the web the title is the site's own splash page
             if (WebPlaces.TryGetValue(scene, out var w)) { BB_GoTo($"../{w.folder}/?scene={w.key}"); return; }
 #endif
             Debug.LogWarning("[Black Bird] Scene not in the build: " + scene);

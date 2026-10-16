@@ -68,6 +68,7 @@ namespace BlackBird
         public string Objective()
         {
             if (solved) return "Chapter complete";
+            if (data.id == "gunsel") return GunselObjective();
             var unmet = data.people.Keys.Where(p => p != "watson" && data.talk.ContainsKey(p) && !talked.Contains(p)).ToList();
             if (unmet.Count > 0 && talked.Count == 0) return "Speak with " + data.people[unmet[0]].name;
             // spots that still hold something, and are open now (some only after a story event, some only before)
@@ -81,6 +82,24 @@ namespace BlackBird
             if (open > 0) return "Examine the scene";
             if (unmet.Count > 0) return "Speak with " + data.people[unmet[0]].name;
             if (deductions.Count == 0) return "Combine what you know in the Mind Palace";
+            int missing = data.conclusion.needs.Count(d => !deductions.Contains(d));
+            return $"Mind Palace: {missing} key deduction{(missing > 1 ? "s" : "")} still to make";
+        }
+
+        // Chapter V's steps (the web game's own objective for it): the tail and the doorway aren't clues, so the
+        // general rules above never point at them
+        string GunselObjective()
+        {
+            bool Ev(string e) => events.Contains(e);
+            if (!Ev("doubled"))
+            {
+                if (!Has("reflection")) return "Walk up Kearny Street. Are we followed? Use Focus at the jeweller's window";
+                if (!Has("sentinel")) return "Someone is behind us. Ask the constable on the corner of Post Street";
+                return "Turn the tables: step into the hatter's doorway on the next block and let him pass";
+            }
+            if (!Ev("arrived")) return "Follow the boy. Keep him in sight; when he looks back, be in cover";
+            if (!Has("register")) return "He went into the Alexandria. See what he left at the desk";
+            if (CanConclude) return "Open the Mind Palace: why is Gutman having you followed?";
             int missing = data.conclusion.needs.Count(d => !deductions.Contains(d));
             return $"Mind Palace: {missing} key deduction{(missing > 1 ? "s" : "")} still to make";
         }
@@ -130,6 +149,6 @@ namespace BlackBird
         }
 
         public static bool HasSave(string id) => PlayerPrefs.HasKey("blackbird." + id + ".v1");
-        public void Erase() { PlayerPrefs.DeleteKey(Key); Reset(); }
+        public void Erase() { PlayerPrefs.DeleteKey(Key); PlayerPrefs.Save(); Reset(); }
     }
 }

@@ -11,7 +11,7 @@
 import os, sys
 import bpy
 
-CAST = ['holmes', 'watson', 'archer', 'polhaus', 'kelly']
+CAST = ['holmes', 'watson', 'archer', 'polhaus', 'kelly', 'wilmer', 'cairo', 'brigid', 'gutman', 'wren']
 
 
 def args():

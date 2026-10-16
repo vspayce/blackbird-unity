@@ -37,7 +37,7 @@ namespace BlackBird
             ui.Bind(state);
             ui.onGive = Give;
             ui.onClosed = () => { mode = Mode.Explore; Refresh(); };
-            ui.onSolved = () => { Refresh(); Hud.I.Narrate("Holmes", "Come, Watson. Back to the Palace for an hour's sleep."); SceneSwitch.Go("PalaceHotel"); };
+            ui.onSolved = () => { Refresh(); SceneSwitch.Go(TitleScreen.Solved("cairo") ? "Title" : "PalaceHotel"); };   // on to Chapter II (or the title, if that is solved already)
             ui.onTalking = Talking;
             ui.focusOn = () => Focus.I && Focus.I.On;
             ui.toggleFocus = () => Focus.I?.Toggle();

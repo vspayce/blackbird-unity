@@ -19,7 +19,7 @@ namespace BlackBird
         public CoverPoint[] cover = new CoverPoint[0];
 
         Chapter ch; TailDef d; Walker who, holmes, watson;
-        int i, checkpoint; float pause, pauseLen, lostT, suspicion; bool started;
+        int i, checkpoint; float pause, pauseLen, lostT, suspicion, bestTo = float.MaxValue, stuckT; bool started;
         public float Suspicion => suspicion;
         public string Phase { get; private set; } = "shadow";
 
@@ -51,6 +51,9 @@ namespace BlackBird
                 if (seg >= left) { p += (q - p) * (left / seg); left = 0; } else { p = q; left -= seg; k--; }
             }
             if (left > 0) p += (Pt(0) - Pt(Mathf.Min(1, d.path.Count - 1))).normalized * left;   // before the start: further back
+            // not inside a lamp post or a wall: step back along the street until he stands clear
+            var back = (Pt(0) - Pt(Mathf.Min(1, d.path.Count - 1))).normalized;
+            for (int k2 = 0; k2 < 8 && Physics.CheckCapsule(p + Vector3.up * 0.35f, p + Vector3.up * 1.5f, 0.3f, ~(1 << 2), QueryTriggerInteraction.Ignore); k2++) p += back * 0.6f;
             var fwd = Pt(Mathf.Min(checkpoint + 1, d.path.Count - 1)) - p; fwd.y = 0;
             float yaw = fwd.sqrMagnitude > 0.01f ? Quaternion.LookRotation(fwd).eulerAngles.y : 0;
             ch.PlaceHolmes(p, yaw);
@@ -115,14 +118,19 @@ namespace BlackBird
             else if (i < d.path.Count - 1)
             {
                 who.lookTarget = null;
-                bool wait = d.waitFor.TryGetValue(i, out var w) && w == "cablecar" && CableCar.I && CableCar.I.Visible && Mathf.Abs(CableCar.I.WebX) < 14;
+                // wait for the cable car only while still short of the tracks: once on them, cross
+                bool wait = d.waitFor.TryGetValue(i, out var w) && w == "cablecar" && CableCar.I && CableCar.I.Visible && Mathf.Abs(CableCar.I.WebX) < 14
+                            && Mathf.Abs(Web.Unmap(o.position).z - CableCar.I.z) > CableCar.I.width / 2 + 1f;
                 if (wait) who.Idle(dt);
                 else
                 {
                     var next = Pt(i + 1); var to = next - o.position; to.y = 0;
+                    // held off his line by a lamp post or a passer-by: after two seconds without progress, step past it
+                    if (to.magnitude < bestTo - 0.2f) { bestTo = to.magnitude; stuckT = 0; } else stuckT += dt;
+                    if (stuckT > 2f) { Explorer.Teleport(who, next, who.transform.eulerAngles.y); to = Vector3.zero; stuckT = 0; }
                     if (to.magnitude < 0.35f)
                     {
-                        i++;
+                        i++; bestTo = float.MaxValue;
                         if (d.pauses.TryGetValue(i, out var pl)) { pause = pauseLen = pl; checkpoint = i; }
                         if (i == d.path.Count - 1) { Show(null, false); who.Idle(dt); ch.RunEvent(d.until); return; }
                     }
@@ -142,6 +150,8 @@ namespace BlackBird
             string st = looking ? (covered ? "He looks back. You are hidden" : "He is looking back!") : dist > d.lose * 0.8f ? "Losing him in the fog" : "Following";
             Show(st, looking && !covered || dist > d.lose * 0.8f);
         }
+
+        public void Hide() => Show(null, false);
 
         void Show(string text, bool warn)
         {

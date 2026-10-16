@@ -52,12 +52,18 @@ namespace BlackBird
             ui.onSolved = () =>
             {
                 Refresh();
-                if (!string.IsNullOrEmpty(nextScene)) SceneSwitch.Go(nextScene);
+                if (string.IsNullOrEmpty(nextScene)) return;
+                // straight on to the next chapter, unless that one is solved already (a replay): then the title
+                var nextCase = TitleScreen.Chapters.FirstOrDefault(c => c.scene == nextScene).caseId;
+                SceneSwitch.Go(nextCase != null && TitleScreen.Solved(nextCase) ? "Title" : nextScene);
             };
 
             ex = GetComponent<Explorer>();
             if (!ex) { ex = gameObject.AddComponent<Explorer>(); ex.holmes = holmes; ex.watson = watson; ex.cameraRig = cameraRig; }
             ex.Place(spawn, spawnYaw);
+            // a saved chapter resumes where its last story event left Holmes (after a tail's doorway, at the doorway)
+            EventDef resumeAt = null;
+            if (resumed) foreach (var e in state.events) if (data.events.TryGetValue(e, out var ed) && ed.wake != null) resumeAt = ed;
             if (watson) watson.transform.position = data.people.TryGetValue("watson", out var wp) && wp.pos != null ? P(wp.pos)   // where the case puts him
                                                   : spawn + Quaternion.Euler(0, spawnYaw, 0) * watsonOffset;
             foreach (var c in cast)
@@ -72,6 +78,7 @@ namespace BlackBird
                 tailWho = cast.FirstOrDefault(c => c.id == data.tail.who)?.walker;
                 tail.Bind(this, data.tail, tailWho, holmes, watson);
             }
+            if (resumeAt != null) ex.Place(P(resumeAt.wake), 0);
             Presence();
             Hud.I.CaseControls(true);
             Refresh();
@@ -126,6 +133,7 @@ namespace BlackBird
             if (ui.Open || busy || portrait != null)
             {
                 holmes.Idle(dt); FollowWatson(dt); People(dt);
+                if (tail) tail.Hide();
                 Hud.I.Context(null, input.UsingTouch);
                 if (portrait != null) PortraitUpdate();
                 Reads();
@@ -339,7 +347,7 @@ namespace BlackBird
                 {
                     state.AddEvent(name);
                     Presence();
-                    if (ev.wake != null) { ex.Place(P(ev.wake), 0); if (watson) watson.transform.position = P(ev.wake) + new Vector3(0.9f, 0, 0.6f); }
+                    if (ev.wake != null) ex.Place(P(ev.wake), 0);   // (Place puts Watson at his shoulder, clear of walls)
                     ui.Lines(ev.after, () => { busy = false; if (ev.gives != null) Give(ev.gives); Refresh(); });
                 };
                 if (ev.fragments != null && ev.fragments.Count > 0) ui.Lines(before, () => ui.Reconstruct(ev, wake));
