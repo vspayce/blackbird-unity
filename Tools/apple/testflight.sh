@@ -27,7 +27,9 @@ fi
 rm -rf "$ARCHIVE" "$EXPORT"
 xcodebuild -project "$PROJ" -scheme Unity-iPhone -configuration Release -destination "$DEST" \
   -archivePath "$ARCHIVE" -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"} \
-  DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic archive | tail -5
+  DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic archive > "Builds/$PLATFORM-archive.log" 2>&1 \
+  || { grep -E "error:|ARCHIVE FAILED" "Builds/$PLATFORM-archive.log" | head -20; exit 1; }
+echo "archived $ARCHIVE"
 
 cat > Builds/ExportOptions.plist <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -43,5 +45,6 @@ cat > Builds/ExportOptions.plist <<PLIST
 PLIST
 
 xcodebuild -exportArchive -archivePath "$ARCHIVE" -exportOptionsPlist Builds/ExportOptions.plist \
-  -exportPath "$EXPORT" -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"} | tail -8
+  -exportPath "$EXPORT" -allowProvisioningUpdates ${AUTH[@]+"${AUTH[@]}"} > "Builds/$PLATFORM-upload.log" 2>&1 \
+  || { grep -iE "error|failed" "Builds/$PLATFORM-upload.log" | head -20; exit 1; }
 echo "Uploaded $PLATFORM build. It shows in App Store Connect ▸ TestFlight once processed."
