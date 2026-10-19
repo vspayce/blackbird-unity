@@ -58,6 +58,22 @@ namespace BlackBird.EditorTools
 
             // ---- the drop beyond: a weedy ledge, then Stockton Street's lights far below in the fog ----
             Plane(root, "Ledge", Lit("Ledge", new Color(0.16f, 0.17f, 0.12f), 0.1f), Web.W(0, -0.25f, z - 1.2f), 6, 2.2f, 1, 1);
+            // the hill falling away below the ledge (there was only black past it), and the roofs of the houses
+            // down toward Stockton Street, dark shapes in the fog with the odd lit window
+            var slopeMat = Lit("Slope", new Color(0.11f, 0.12f, 0.09f), 0.08f);
+            var slope = Box(root, "Hillside", slopeMat, 0, -7.5f, z - 13f, 40, 0.4f, 26);
+            slope.transform.rotation = Quaternion.Euler(30f, 0, 0) * slope.transform.rotation;   // falls away from the fence (Unity +z is beyond it)
+            var roofMat = Lit("Roofs", new Color(0.07f, 0.07f, 0.08f), 0.15f);
+            var windowMat = Unlit("FarWindow", new Color(1.6f, 1.1f, 0.55f));
+            var rr = new System.Random(11);
+            for (int i = 0; i < 18; i++)
+            {
+                float rx = -34 + i * 4f + (float)rr.NextDouble() * 2, rz = z - 30 - (float)rr.NextDouble() * 22;
+                float rh = 6 + (float)rr.NextDouble() * 5, ry = -16 - (float)rr.NextDouble() * 3;
+                Box(root, "Roof", roofMat, rx, ry + rh / 2, rz, 3.2f + (float)rr.NextDouble(), rh, 5);
+                if (rr.NextDouble() < 0.55)
+                    Box(root, "Window", windowMat, rx + ((float)rr.NextDouble() - 0.5f) * 1.6f, ry + rh * (0.4f + 0.4f * (float)rr.NextDouble()), rz + 2.52f, 0.5f, 0.8f, 0.02f);
+            }
             var lights = new GameObject("StocktonLights").transform; lights.SetParent(root, false);
             var glow = Unlit("CityLight", new Color(2.4f, 1.7f, 0.9f));
             var rng = new System.Random(7);
