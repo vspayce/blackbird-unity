@@ -203,6 +203,25 @@ namespace BlackBird.EditorTools
             if (bestD > 1.5f) Debug.LogWarning($"[Black Bird] The set's alley lamp is at {p}, not where expected; check the export.");
         }
 
+        /// Every mirror material already in the project onto the BlackBird/Mirror shader (no rebuild of the sets).
+        [MenuItem("Black Bird/Fix Mirrors", priority = 30)]
+        public static void FixMirrors()
+        {
+            var mirror = Shader.Find("BlackBird/Mirror");
+            if (!mirror) { Debug.LogError("[Black Bird] BlackBird/Mirror shader not found"); return; }
+            int n = 0;
+            foreach (var g in AssetDatabase.FindAssets("t:Material", new[] { Root }))
+            {
+                var m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
+                if (!m) continue;
+                var name = m.name.ToLowerInvariant(); { int dash = name.IndexOf('-'); if (dash >= 0) name = name.Substring(dash + 1); }
+                if (!(name == "mirror" || name.EndsWith("mirror"))) continue;
+                m.shader = mirror; m.SetColor("_BaseColor", new Color(0.46f, 0.5f, 0.52f)); EditorUtility.SetDirty(m); n++;
+            }
+            AssetDatabase.SaveAssets();
+            Debug.Log($"[Black Bird] mirrors on the Mirror shader: {n}");
+        }
+
         internal static void TuneSetMaterials(GameObject set)
         {
             // stone wants to look wet; glass and flames want to glow above the bloom threshold
@@ -234,6 +253,9 @@ namespace BlackBird.EditorTools
                     {
                         // old silvered glass: with no reflection close by, a true mirror read as a black panel in its
                         // frame. A pale, glossy, faintly self-lit grey reads as glass catching the room's light.
+                        // (its own shader, drawn a hair forward, so it no longer fights its frame's backing)
+                        var mirror = Shader.Find("BlackBird/Mirror");
+                        if (mirror) { m.shader = mirror; m.SetColor("_BaseColor", new Color(0.46f, 0.5f, 0.52f)); EditorUtility.SetDirty(m); continue; }
                         m.SetTexture("_BaseMap", null);
                         m.SetColor("_BaseColor", new Color(0.46f, 0.5f, 0.52f));
                         if (m.HasProperty("_Metallic")) m.SetFloat("_Metallic", 0.55f);
