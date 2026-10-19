@@ -215,11 +215,22 @@ namespace BlackBird.EditorTools
                 var m = AssetDatabase.LoadAssetAtPath<Material>(AssetDatabase.GUIDToAssetPath(g));
                 if (!m) continue;
                 var name = m.name.ToLowerInvariant(); { int dash = name.IndexOf('-'); if (dash >= 0) name = name.Substring(dash + 1); }
+                if (Leaf(m, name)) { EditorUtility.SetDirty(m); n++; continue; }
                 if (!(name == "mirror" || name.EndsWith("mirror"))) continue;
                 m.shader = mirror; m.SetColor("_BaseColor", new Color(0.46f, 0.5f, 0.52f)); EditorUtility.SetDirty(m); n++;
             }
             AssetDatabase.SaveAssets();
-            Debug.Log($"[Black Bird] mirrors on the Mirror shader: {n}");
+            Debug.Log($"[Black Bird] mirrors on the Mirror shader, palm and fern leaves green again: {n}");
+        }
+
+        /// Palm and fern leaves came over almost black (#020a01), so in the fog and the gaslight they read as grey
+        /// cut-outs. A living, waxy green.
+        static bool Leaf(Material m, string name)
+        {
+            if (!(name == "palm" || name == "fern" || name == "grand_palm" || name == "grand_fern")) return false;
+            if (m.HasProperty("_BaseColor")) m.SetColor("_BaseColor", name.Contains("fern") ? new Color(0.2f, 0.36f, 0.14f) : new Color(0.22f, 0.38f, 0.16f));
+            if (m.HasProperty("_Smoothness")) m.SetFloat("_Smoothness", 0.38f);
+            return true;
         }
 
         internal static void TuneSetMaterials(GameObject set)
@@ -249,6 +260,7 @@ namespace BlackBird.EditorTools
                         m.SetColor("_BaseColor", lamp ? c : Color.white * 0.2f);
                         m.globalIlluminationFlags = MaterialGlobalIlluminationFlags.None;
                     }
+                    if (Leaf(m, n)) { EditorUtility.SetDirty(m); continue; }
                     if (n == "mirror" || n.EndsWith("mirror"))
                     {
                         // old silvered glass: with no reflection close by, a true mirror read as a black panel in its
