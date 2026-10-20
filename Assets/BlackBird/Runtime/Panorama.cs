@@ -47,6 +47,9 @@ namespace BlackBird
             var mf = GetComponent<MeshFilter>(); if (!mf) mf = gameObject.AddComponent<MeshFilter>();
             var mr = GetComponent<MeshRenderer>(); if (!mr) mr = gameObject.AddComponent<MeshRenderer>();
             mf.sharedMesh = mesh; mr.sharedMaterial = material;
+            // clamp across, so the filter doesn't pull the far end's sky into the strip's first column (a bright seam)
+            if (material && material.HasProperty("_BaseMap") && material.GetTexture("_BaseMap") is Texture pt && pt.wrapModeU != TextureWrapMode.Clamp)
+                pt.wrapModeU = TextureWrapMode.Clamp;
             mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off; mr.receiveShadows = false;
         }
     }

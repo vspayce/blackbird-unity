@@ -49,6 +49,10 @@ Shader "BlackBird/Panorama"
             half4 frag(Varyings i) : SV_Target
             {
                 half3 c = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, i.uv).rgb;
+                // where the strip's two ends meet the plates don't quite match: over the last 1% of the strip, fade
+                // into the strip's first column so the join closes (and the texture is clamped, so no bright line)
+                half edge = smoothstep(0.99, 1.0, i.uv.x);
+                if (edge > 0) c = lerp(c, SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, float2(0.0005, i.uv.y)).rgb, edge);
                 half lum = dot(c, half3(0.3, 0.59, 0.11));
                 float v = i.uv.y;
                 half a = 1 - smoothstep(_SkyFrom, _SkyTo, v);                                       // the paper sky above the hills
